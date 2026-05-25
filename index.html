@@ -1,0 +1,2464 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- CSP: unsafe-eval u. a. für TradingView-Embed & WebLLM; bei Deploy Keys/Supabase per Build injizieren, nicht ins öffentliche Repo. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob: https: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com https://cdn.jsdelivr.net https://unpkg.com https://esm.run; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; frame-src https://*.tradingview.com https://s3.tradingview.com https://*.walletconnect.com https://*.walletconnect.org https://verify.walletconnect.com https://*.web3modal.com https://*.web3modal.org https://*.reown.com https://*.cloud.reown.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; upgrade-insecure-requests">
+  <!-- Secrets: dayflow-config.local.js (siehe dayflow-config.local.js.example) — nicht in index.html committen -->
+  <meta name="dayflow-supabase-url" content="">
+  <meta name="dayflow-supabase-key" content="">
+  <meta name="dayflow-wc-project-id" content="">
+  <!-- Optional: 1inch API-Key (Meta oder localStorage) verbessert nur die Quote-Genauigkeit — für die Swap-Weiterleitung nicht nötig. -->
+  <meta name="dayflow-1inch-api-key" content="">
+  <!-- Optional: eigener Reverse-Proxy-Origin (ohne Slash am Ende), z. B. https://meine-domain/api/1inch → backend soll nach api.1inch.dev weiterleiten -->
+  <meta name="dayflow-1inch-api-base" content="">
+  <!-- Optional: Referrer-Fee in % (max. 3), nur zusammen mit Empfänger-Adresse; siehe 1inch-Doku -->
+  <meta name="dayflow-swap-fee-percent" content="0">
+  <meta name="dayflow-swap-fee-receiver" content="">
+  <!-- Optional: Etherscan API v2 Key für Tx-Historie im Wallet-Panel (https://etherscan.io/apis) -->
+  <meta name="dayflow-etherscan-key" content="">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Permissions-Policy" content="camera=(), microphone=(), geolocation=(), payment=()">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0B0C10">
+  <meta name="application-name" content="DayFlow">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="DayFlow">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="DayFlow: Live-Krypto-Dashboard mit Rankings, News, Wallet-Übersicht, Paper Trading und optionaler lokaler KI im Browser. Keine Anlageberatung.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="DayFlow – Live Krypto Dashboard">
+  <meta property="og:description" content="Marktdaten, Watchlist, News und KI-Kontext – modular und lokal nutzbar. Keine Anlageberatung.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="DayFlow – Live Krypto Dashboard">
+  <meta name="twitter:description" content="Marktdaten, Watchlist, News und KI-Kontext – modular und lokal nutzbar. Keine Anlageberatung.">
+  <link rel="icon" href="./icons/dayflow-icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <script src="./dayflow-config.js"></script>
+  <script src="./dayflow-config.local.js" onerror="void 0"></script>
+  <script src="./archive/dayflow-ads-archive.js"></script>
+  <script src="./df-ads.js"></script>
+  <script src="./df-security.js"></script>
+  <script src="./vendor/wc-ethereum-provider.umd.js"></script>
+  <script>
+    window.__dfDeferredInstall = null;
+    window.addEventListener("beforeinstallprompt", function (e) {
+      e.preventDefault();
+      window.__dfDeferredInstall = e;
+      document.dispatchEvent(new Event("df-install-prompt"));
+    });
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function () {});
+    }
+  </script>
+  <link rel="apple-touch-icon" href="./icons/pwa-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap">
+  <title>DayFlow – Live Krypto Dashboard</title>
+
+  <link rel="preload" href="./styles.css" as="style">
+  <link rel="preload" href="./app.js" as="script">
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./df-app-pro.css">
+  <link rel="stylesheet" href="./df-perf.css">
+  <link rel="stylesheet" href="./df-swap-uni.css?v=7">
+  <link rel="stylesheet" href="./df-features.css?v=1">
+  <link rel="stylesheet" href="./df-auth-flow.css?v=2">
+  <link rel="stylesheet" href="./df-paper-indicators.css?v=1">
+  <link rel="stylesheet" href="./df-dex-radar.css?v=5">
+  <link rel="stylesheet" href="./df-honeypot-scanner.css?v=1">
+  <link rel="stylesheet" href="./df-wallet-connect.css?v=2">
+  <link rel="stylesheet" href="./df-wallet-alerts.css?v=1">
+  <link rel="stylesheet" href="./df-mobile.css?v=1">
+  <link rel="stylesheet" href="./df-news-intel.css?v=3">
+  <link rel="stylesheet" href="./df-funding-rates.css?v=1">
+  <link rel="stylesheet" href="./df-whale-tracker.css?v=1">
+  <link rel="stylesheet" href="./df-open-interest.css?v=1">
+  <link rel="stylesheet" href="./df-ai-coach.css?v=2">
+  <link rel="stylesheet" href="./df-wallet-risk-monitor.css?v=1">
+  <link rel="stylesheet" href="./df-airdrop-finder.css?v=1">
+  <link rel="stylesheet" href="./df-gas-optimizer.css?v=1">
+  <link rel="stylesheet" href="./df-more-hub.css?v=1">
+</head>
+<body class="df-has-app-nav df-app-mode-market">
+  <a class="skip-to-main" href="#main-content">Zum Inhalt springen</a>
+  <div id="authModal" class="auth-modal df-auth-flow df-auth-removed" role="dialog" aria-modal="true" aria-labelledby="authTitle" data-auth-mode="login" data-auth-source="local" hidden>
+    <canvas id="authFlowCanvas" class="df-auth-flow-bg" aria-hidden="true"></canvas>
+    <div class="df-auth-flow-overlay" aria-hidden="true"></div>
+    <div class="df-auth-flow-particles" aria-hidden="true"></div>
+    <div class="auth-card df-auth-flow-card">
+      <button id="closeAuthModal" class="auth-close" type="button" aria-label="Schließen">✕</button>
+      <div class="df-auth-brand">
+        <div class="df-auth-logo-mark" aria-hidden="true">
+          <img src="./icons/dayflow-icon.svg" alt="" width="36" height="36" decoding="async">
+        </div>
+        <p class="df-auth-slogan">Flow with the markets.</p>
+        <h2 id="authTitle" class="auth-card-title">Welcome to <span>DayFlow</span></h2>
+        <p id="authSubtitle" class="auth-card-subtitle">Lokaler Vault — Konto &amp; Passwort nur auf diesem Gerät (Browser)</p>
+        <span id="authModeTag" class="visually-hidden" aria-live="polite"></span>
+        <span id="authChipLabel" class="visually-hidden"></span>
+        <span id="authVaultEyebrow" class="visually-hidden"></span>
+      </div>
+
+      <div class="auth-tabs auth-tabs-prism" role="tablist" aria-label="Anmeldung">
+        <span class="auth-tab-glider" aria-hidden="true"></span>
+        <button id="showLoginTab" class="auth-tab active" type="button" role="tab" aria-selected="true">Login</button>
+        <button id="showRegisterTab" class="auth-tab" type="button" role="tab" aria-selected="false">Registrieren</button>
+      </div>
+
+      <div id="authAccountSourceRow" class="auth-account-source is-hidden">
+        <button type="button" id="authSourceLocalBtn" class="auth-source-btn active">Lokaler Vault</button>
+        <button type="button" id="authSourceCloudBtn" class="auth-source-btn">Cloud (E-Mail)</button>
+      </div>
+
+      <div id="authLocalPanels" class="auth-local-panels">
+      <form id="loginForm" class="auth-form active">
+        <div id="loginMessage" class="auth-message"></div>
+        <div class="auth-field auth-field--icon">
+          <label id="loginUsernameLabel" class="auth-label" for="loginUsername">Benutzername</label>
+          <span class="df-auth-field-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16v12H4z"/><path d="m4 7 8 6 8-6"/></svg>
+          </span>
+          <input id="loginUsername" class="auth-input" type="text" placeholder="Username" autocomplete="username" required />
+        </div>
+        <div class="auth-field auth-field--icon">
+          <label id="loginPasswordLabel" class="auth-label" for="loginPassword">Passwort</label>
+          <span class="df-auth-field-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 1 1 8 0v3"/></svg>
+          </span>
+          <input id="loginPassword" class="auth-input" type="password" placeholder="Password" autocomplete="current-password" required />
+        </div>
+        <div class="auth-strength" aria-hidden="true">
+          <div class="auth-strength-bar"><div id="loginStrengthFill" class="auth-strength-fill"></div></div>
+          <span id="loginStrengthText">Bereit</span>
+        </div>
+        <button id="loginSubmitButton" class="auth-button primary auth-submit df-auth-signin-btn" type="submit">Sign In</button>
+        <div class="df-auth-extras">
+          <a href="#" id="authForgotPassword" class="df-auth-forgot">Forgot password?</a>
+          <button type="button" id="authCreateAccountBtn" class="df-auth-outline-btn">Create account</button>
+        </div>
+      </form>
+
+      <form id="registerForm" class="auth-form">
+        <div id="registerMessage" class="auth-message"></div>
+        <div class="auth-grid">
+          <div class="auth-field">
+            <label id="registerFirstNameLabel" class="auth-label" for="registerFirstName">Vorname</label>
+            <input id="registerFirstName" class="auth-input" type="text" placeholder="Vorname" autocomplete="given-name" required />
+          </div>
+          <div class="auth-field">
+            <label id="registerLastNameLabel" class="auth-label" for="registerLastName">Nachname</label>
+            <input id="registerLastName" class="auth-input" type="text" placeholder="Nachname" autocomplete="family-name" required />
+          </div>
+          <div class="auth-field full">
+            <label id="registerUsernameLabel" class="auth-label" for="registerUsername">Benutzername</label>
+            <input id="registerUsername" class="auth-input" type="text" placeholder="Benutzername wählen" autocomplete="username" required />
+          </div>
+          <div class="auth-field full">
+            <label id="registerPasswordLabel" class="auth-label" for="registerPassword">Passwort</label>
+            <input id="registerPassword" class="auth-input" type="password" placeholder="Mindestens 8 Zeichen" autocomplete="new-password" required />
+          </div>
+          <div class="auth-field full">
+            <div class="auth-strength" aria-hidden="true">
+              <div class="auth-strength-bar"><div id="registerStrengthFill" class="auth-strength-fill"></div></div>
+              <span id="registerStrengthText">Noch leer</span>
+            </div>
+          </div>
+          <div class="auth-field full">
+            <label class="auth-label" for="registerPushAlerts">
+              <input id="registerPushAlerts" type="checkbox" checked />
+              Push Alerts aktivieren (z. B. bei +/-5% Preisbewegung)
+            </label>
+          </div>
+        </div>
+        <button id="registerSubmitButton" class="auth-button primary auth-submit" type="submit">Konto erstellen</button>
+      </form>
+      </div>
+
+      <div id="authCloudPanels" class="auth-cloud-panel is-hidden">
+        <div id="cloudAuthMessage" class="auth-message"></div>
+        <form id="cloudLoginForm" class="auth-form active">
+          <div class="auth-field">
+            <label id="cloudEmailLoginLabel" class="auth-label" for="cloudEmailLogin">E-Mail</label>
+            <input id="cloudEmailLogin" class="auth-input" type="email" autocomplete="email" required />
+          </div>
+          <div class="auth-field">
+            <label id="cloudPasswordLoginLabel" class="auth-label" for="cloudPasswordLogin">Passwort</label>
+            <input id="cloudPasswordLogin" class="auth-input" type="password" autocomplete="current-password" required />
+          </div>
+          <button id="cloudLoginSubmitBtn" class="auth-button primary auth-submit" type="submit">Mit E-Mail anmelden</button>
+        </form>
+        <form id="cloudRegisterForm" class="auth-form">
+          <div class="auth-grid">
+            <div class="auth-field">
+              <label id="cloudFirstNameLabel" class="auth-label" for="cloudFirstName">Vorname</label>
+              <input id="cloudFirstName" class="auth-input" type="text" autocomplete="given-name" />
+            </div>
+            <div class="auth-field">
+              <label id="cloudLastNameLabel" class="auth-label" for="cloudLastName">Nachname</label>
+              <input id="cloudLastName" class="auth-input" type="text" autocomplete="family-name" />
+            </div>
+            <div class="auth-field full">
+              <label id="cloudEmailRegisterLabel" class="auth-label" for="cloudEmailRegister">E-Mail</label>
+              <input id="cloudEmailRegister" class="auth-input" type="email" autocomplete="email" required />
+            </div>
+            <div class="auth-field full">
+              <label id="cloudPasswordRegisterLabel" class="auth-label" for="cloudPasswordRegister">Passwort</label>
+              <input id="cloudPasswordRegister" class="auth-input" type="password" autocomplete="new-password" required />
+            </div>
+            <div class="auth-field full">
+              <label class="auth-label" for="cloudRegisterPushAlerts">
+                <input id="cloudRegisterPushAlerts" type="checkbox" checked />
+                Push Alerts aktivieren (z. B. bei +/-5% Preisbewegung)
+              </label>
+            </div>
+          </div>
+          <button id="cloudRegisterSubmitBtn" class="auth-button primary auth-submit" type="submit">E-Mail-Konto erstellen</button>
+        </form>
+        <p id="cloudAuthFootnote" class="auth-cloud-footnote"></p>
+      </div>
+    </div>
+  </div>
+
+  <div id="settingsModal" class="auth-modal settings-modal-pro" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="auth-card settings-card-pro">
+      <button id="closeSettingsModal" class="auth-close" type="button">✕</button>
+      <div class="auth-card-header settings-pro-header">
+        <h2 id="settingsTitle" class="auth-card-title">⚙ <span>Einstellungen</span></h2>
+        <p id="settingsSubtitle" class="auth-card-subtitle settings-pro-tagline">
+          Passe Sprache und Kontooptionen für dein Dashboard an.
+        </p>
+      </div>
+      <div class="settings-pro-shell">
+        <nav class="settings-pro-nav" id="settingsProNav" role="tablist" data-i18n-aria-label="settingsNavAria">
+          <button type="button" class="settings-pro-nav-btn active" role="tab" aria-selected="true" data-settings-tab="general" id="settingsTabGeneral" data-i18n="settingsNavGeneral">Allgemein</button>
+          <button type="button" class="settings-pro-nav-btn" role="tab" aria-selected="false" data-settings-tab="account" id="settingsTabAccount" data-i18n="settingsNavAccount" hidden>Konto</button>
+          <button type="button" class="settings-pro-nav-btn" role="tab" aria-selected="false" data-settings-tab="display" id="settingsTabDisplay" data-i18n="settingsNavDisplay">Anzeige</button>
+          <button type="button" class="settings-pro-nav-btn" role="tab" aria-selected="false" data-settings-tab="data" id="settingsTabData" data-i18n="settingsNavData">Daten</button>
+          <button type="button" class="settings-pro-nav-btn" role="tab" aria-selected="false" data-settings-tab="security" id="settingsTabSecurity" data-i18n="settingsNavSecurity">Privatsphäre</button>
+          <button type="button" class="settings-pro-nav-btn" role="tab" aria-selected="false" data-settings-tab="legal" id="settingsTabLegal" data-i18n="settingsNavLegal">Rechtliches</button>
+        </nav>
+        <div class="settings-pro-body">
+          <div class="settings-pro-panel active" data-settings-panel="general" role="tabpanel" aria-labelledby="settingsTabGeneral">
+            <p class="settings-pro-kicker" data-i18n="settingsKickerGeneral">Sprache und Hinweise zur Anmeldeart.</p>
+            <div class="settings-row">
+              <label id="languageLabel" class="auth-label" for="languageSelect">Sprache</label>
+              <select id="languageSelect" class="settings-select">
+                <option value="de">Deutsch</option>
+                <option value="en">English</option>
+                <option value="it">Italiano</option>
+                <option value="fr">Français</option>
+              </select>
+            </div>
+            <div id="settingsCloudHint" class="settings-cloud-hint is-hidden"></div>
+          </div>
+
+          <div class="settings-pro-panel" data-settings-panel="account" role="tabpanel" aria-labelledby="settingsTabAccount" hidden>
+            <p class="settings-pro-kicker" data-i18n="settingsKickerAccount">Lokales Vault-Konto: Benutzername und Passwort ändern. Bei reinem Cloud-Login (E-Mail) sind diese Felder ausgeblendet.</p>
+            <div id="settingsLocalCredentials">
+              <div class="auth-label settings-group-label" data-i18n="settingsGroupChangeUsername">Benutzername ändern</div>
+              <div id="settingsUsernameMessage" class="auth-message"></div>
+              <div class="settings-row">
+                <label class="auth-label" for="settingsNewUsername" data-i18n="settingsNewUsernameLabel">Neuer Benutzername</label>
+                <input id="settingsNewUsername" class="auth-input" type="text" placeholder="Neuer Benutzername" autocomplete="off" data-i18n-placeholder="settingsNewUsernamePh" />
+              </div>
+              <div class="settings-row">
+                <label class="auth-label" for="settingsUsernamePassword" data-i18n="settingsUsernamePasswordLabel">Aktuelles Passwort bestätigen</label>
+                <input id="settingsUsernamePassword" class="auth-input" type="password" placeholder="Dein aktuelles Passwort" autocomplete="current-password" data-i18n-placeholder="settingsUsernamePasswordPh" />
+              </div>
+              <button id="settingsChangeUsernameBtn" class="auth-button primary block-button" type="button" data-i18n="settingsSaveUsername">Benutzername speichern</button>
+
+              <div class="settings-divider tight"></div>
+              <div class="auth-label settings-group-label" data-i18n="settingsGroupChangePassword">Passwort ändern</div>
+              <div id="settingsPasswordMessage" class="auth-message"></div>
+              <div class="settings-row">
+                <label class="auth-label" for="settingsOldPassword" data-i18n="settingsOldPasswordLabel">Aktuelles Passwort</label>
+                <input id="settingsOldPassword" class="auth-input" type="password" placeholder="Aktuelles Passwort" autocomplete="current-password" data-i18n-placeholder="settingsOldPasswordPh" />
+              </div>
+              <div class="settings-row">
+                <label class="auth-label" for="settingsNewPassword" data-i18n="settingsNewPasswordLabel">Neues Passwort</label>
+                <input id="settingsNewPassword" class="auth-input" type="password" placeholder="Mindestens 8 Zeichen" autocomplete="new-password" data-i18n-placeholder="settingsNewPasswordPh" />
+              </div>
+              <button id="settingsChangePasswordBtn" class="auth-button primary block-button" type="button" data-i18n="settingsSavePassword">Passwort speichern</button>
+            </div>
+          </div>
+
+          <div class="settings-pro-panel" data-settings-panel="display" role="tabpanel" aria-labelledby="settingsTabDisplay">
+            <p class="settings-pro-kicker" data-i18n="settingsKickerDisplay">Zweitwährung und Scrollverhalten — rein optisch, kein Trading.</p>
+            <div class="auth-label settings-group-label" data-i18n="settingsGroupDisplay">Anzeige &amp; Zweitwährung</div>
+            <div class="settings-row">
+              <label class="auth-label" for="secondaryFiatSelect" data-i18n="settingsSecondaryFiatLabel">Zweitwährung (Anzeige)</label>
+              <select id="secondaryFiatSelect" class="settings-select">
+                <option value="off" data-i18n-opt="settingsFiatOff">Nur USD</option>
+                <option value="eur" data-i18n-opt="settingsFiatEur">+ EUR (Schätzung)</option>
+                <option value="chf" data-i18n-opt="settingsFiatChf">+ CHF (Schätzung)</option>
+              </select>
+            </div>
+            <p class="pro-muted settings-hint" data-i18n="settingsFiatHint">FX über CoinGecko (BTC-Referenz). Kein FX-Handel, nur Orientierung.</p>
+            <div class="settings-row settings-row-check">
+              <label class="auth-label"><input type="checkbox" id="restoreScrollCheckbox" /> <span data-i18n="settingsRestoreScroll">Letzte Scrollposition merken</span></label>
+            </div>
+            <div class="settings-divider tight"></div>
+            <div class="auth-label settings-group-label">Wallet Alerts</div>
+            <p class="pro-muted settings-hint">Push und In-App-Hinweise bei Kurs, Ein-/Ausgang, Scam-Heuristik und Gas — nur lokal, keine Anlageberatung.</p>
+            <div class="settings-wallet-alerts-block" id="dfWalletAlertsSettings"></div>
+          </div>
+
+          <div class="settings-pro-panel" data-settings-panel="data" role="tabpanel" aria-labelledby="settingsTabData">
+            <p class="settings-pro-kicker" data-i18n="settingsKickerData">Watchlist teilen und ein lokales JSON-Backup erzeugen.</p>
+            <div class="auth-label settings-group-label" data-i18n="settingsGroupWatchlist">Watchlist teilen</div>
+            <p class="pro-muted settings-hint" data-i18n="settingsWatchlistHint">Erzeugt einen Link mit CoinGecko-IDs dieser Watchlist (Import beim Öffnen im gleichen Browser).</p>
+            <button id="dfShareWatchlistBtn" class="auth-button primary block-button" type="button" data-i18n="settingsWatchlistCopyBtn">Link kopieren</button>
+            <p id="dfShareWatchlistOut" class="auth-message"></p>
+            <div class="settings-divider tight"></div>
+            <div class="auth-label settings-group-label" data-i18n="settingsGroupBackup">Backup</div>
+            <button id="dayflowExportBackupBtn" class="auth-button primary block-button" type="button" data-i18n="settingsBackupBtn">JSON-Backup (Watchlist, Einstellungen, Paper …)</button>
+            <p id="dayflowExportBackupMsg" class="auth-message"></p>
+          </div>
+
+          <div class="settings-pro-panel" data-settings-panel="security" role="tabpanel" aria-labelledby="settingsTabSecurity">
+            <p class="settings-pro-kicker" data-i18n="settingsKickerSecurity">Schutz vor versehentlichen externen Klicks und Session-Erinnerung.</p>
+            <div class="auth-label settings-group-label" data-i18n="settingsGroupSecurity">Komfort &amp; Sicherheit</div>
+            <div class="settings-row settings-row-check">
+              <label class="auth-label"><input type="checkbox" id="dfExtLinkGuardCb" /> <span data-i18n="settingsExtLinkGuard">Vor externen Links kurz nachfragen</span></label>
+            </div>
+            <div class="settings-row">
+              <label class="auth-label" for="dfSessionRemindSelect" data-i18n="settingsSessionRemindLabel">Session-Erinnerung bei Inaktivität</label>
+              <select id="dfSessionRemindSelect" class="settings-select">
+                <option value="0" data-i18n-opt="settingsSessionOff">Aus</option>
+                <option value="15" data-i18n-opt="settingsSession15">Nach ca. 15 Min</option>
+                <option value="30" data-i18n-opt="settingsSession30">Nach ca. 30 Min</option>
+                <option value="60" data-i18n-opt="settingsSession60">Nach ca. 60 Min</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-pro-panel" data-settings-panel="legal" role="tabpanel" aria-labelledby="settingsTabLegal">
+            <p class="settings-pro-kicker" data-i18n="settingsKickerLegal">Verbindliche Texte, Impressum und Hinweise zum Produkt — bitte aufmerksam lesen.</p>
+            <div class="settings-legal-grid" role="group" aria-label="Rechtliches">
+              <button id="openAgbModalButton" class="settings-legal-tile" type="button">
+                <span class="settings-legal-tile-title" data-i18n="settingsBtnAgb">AGB &amp; Nutzungsbedingungen</span>
+                <span class="settings-legal-tile-desc" data-i18n="settingsBtnAgbDesc">Geltungsbereich, Wallet, KI, Haftung</span>
+              </button>
+              <button id="openPrivacyModalButton" class="settings-legal-tile" type="button">
+                <span class="settings-legal-tile-title" data-i18n="settingsBtnPrivacy">Datenschutz</span>
+                <span class="settings-legal-tile-desc" data-i18n="settingsBtnPrivacyDesc">Speicherorte, Zwecke, Drittanbieter</span>
+              </button>
+              <button id="openImpressumModalButton" class="settings-legal-tile" type="button">
+                <span class="settings-legal-tile-title" data-i18n="settingsBtnImpressum">Impressum</span>
+                <span class="settings-legal-tile-desc" data-i18n="settingsBtnImpressumDesc">Anbieterkennzeichnung nach TMG / DDG</span>
+              </button>
+              <button id="openRiskModalButton" class="settings-legal-tile" type="button">
+                <span class="settings-legal-tile-title" data-i18n="settingsBtnRisk">Risiko- &amp; Produkt­hinweise</span>
+                <span class="settings-legal-tile-desc" data-i18n="settingsBtnRiskDesc">Keine Anlageberatung, Krypto-Risiken</span>
+              </button>
+            </div>
+            <p class="pro-muted settings-hint settings-legal-footnote" data-i18n="settingsLegalFootnote">Rechtstexte sind in der jeweiligen Sprachversion der App formuliert. Bei Abweichungen gilt der vollständige Modal-Text.</p>
+          </div>
+        </div>
+      </div>
+      <footer class="settings-pro-footer">
+        <span id="settingsFooterMeta" class="settings-footer-meta" data-i18n="settingsFooterMeta">DayFlow · Informations-Dashboard · Lokale Web-App</span>
+        <button id="settingsLogoutButton" class="auth-button settings-logout-btn" type="button" hidden>Wallet trennen</button>
+      </footer>
+    </div>
+  </div>
+  <div id="agbModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="agbModalTitle">
+    <div class="auth-card legal-modal-card">
+      <button id="closeAgbModalButton" class="auth-close" type="button">✕</button>
+      <div class="auth-card-header">
+        <h2 id="agbModalTitle" class="auth-card-title"><span>AGB</span></h2>
+        <div class="auth-card-subtitle">
+          Allgemeine Geschäfts- und Nutzungsbedingungen (Stand: Mai 2026)
+        </div>
+      </div>
+      <div class="legal-body">
+        <h3>1. Geltungsbereich</h3>
+        <p>Diese Nutzungsbedingungen regeln die Nutzung der Plattform DayFlow durch natürliche und juristische Personen. Mit der Nutzung der Plattform akzeptieren Nutzer diese Bedingungen verbindlich.</p>
+        <h3>2. Leistungsbeschreibung</h3>
+        <p>DayFlow stellt Marktdaten, Portfolio-Übersichten, Konverter, Nachrichten und KI-gestützte Auswertungen bereit. Die Inhalte dienen ausschließlich Informationszwecken und stellen keine Anlage-, Steuer- oder Rechtsberatung dar.</p>
+        <h3>3. Registrierung und Kontopflichten</h3>
+        <ul>
+          <li>Nutzer sind verpflichtet, bei Registrierung wahrheitsgemäße und vollständige Angaben zu machen.</li>
+          <li>Zugangsdaten sind vertraulich zu behandeln und vor Zugriff Dritter zu schützen.</li>
+          <li>Bei Verdacht auf Missbrauch sind Zugangsdaten unverzüglich zu ändern.</li>
+        </ul>
+        <h3>4. Wallet-Verknüpfung, Swap-Interface (1inch) und DayFlow-Wallet (Browser)</h3>
+        <p><strong>Keine Verwahrung / kein Custody:</strong> DayFlow verwahrt keine Kryptowährungen, führt keine Transaktionen im Namen von Nutzern aus und hat keinen Zugriff auf <strong>Private Keys</strong> von Drittanbieter-Wallets (z. B. MetaMask, Rabby, WalletConnect).</p>
+        <p><strong>Swap-Funktion:</strong> Die optional angebotene Tausch-Ansicht dient ausschließlich als <strong>technisches Interface</strong> zu Drittanbieter-Protokollen (insb. Aggregator <strong>1inch</strong>). Kursvorschläge (Quotes), Routen und Transaktionsdaten stammen von diesen Anbietern. Jede On-Chain-Transaktion wird <strong>ausschließlich in der Wallet des Nutzers signiert</strong> und direkt an die jeweilige Blockchain übermittelt — DayFlow „berührt“ dabei weder Vermögenswerte noch Schlüssel.</p>
+        <p><strong>Keine Anlageberatung:</strong> Die Swap-Ansicht stellt keine Empfehlung zum Erwerb oder Verkauf von Token dar.</p>
+        <p><strong>Haftung Drittanbieter:</strong> Für die Verfügbarkeit, Richtigkeit von Quotes, Smart-Contract-Risiken, MEV, Slippage und das Verhalten der DEX-/Brücken-Protokolle sind ausschließlich die jeweiligen Drittanbieter bzw. dezentrale Protokolle verantwortlich. Nutzung auf <strong>eigenes Risiko</strong>.</p>
+        <p>Verbindungen zu externen Wallets (z. B. WalletConnect oder Browser-Erweiterungen wie MetaMask) werden ausschließlich zwischen deinem Endgerät und dem jeweiligen Wallet-Anbieter hergestellt. DayFlow speichert oder verarbeitet dabei keine Private Keys von Drittanbieter-Wallets und fordert diese nicht an.</p>
+        <p><strong>Integrierte DayFlow-Wallet:</strong> Optional kannst du innerhalb der Web-Anwendung eine nicht-verwahrende („non-custodial“) Wallet einrichten. Seed Phrase (mnemonischer Code) und Private Key werden dabei nur auf deinem Endgerät erzeugt bzw. eingegeben, mit einem von dir gewählten Passwort lokal verschlüsselt (Browser: Web Crypto, z. B. PBKDF2 und AES-GCM) und ausschließlich lokal im Browser-Speicher abgelegt. DayFlow betreibt <strong>keine</strong> Verwahrung von Kryptowerten, <strong>kein</strong> Wallet-Recovery durch den Betreiber und <strong>keine</strong> Wiederherstellung deines Passworts oder deiner Seed Phrase. Verlust von Passwort, Seed Phrase oder kompromittiertes Endgerät kann zum dauerhaften Verlust von Zugriff und Vermögen führen.</p>
+        <p><strong>Risiko- und Sicherheitshinweis:</strong> Jede Browser-Anwendung unterliegt grundsätzlichen Risiken (z. B. Schadsoftware auf dem Gerät, unsichere Netzwerke, Browser-Erweiterungen, Schwachstellen). DayFlow übernimmt keine Garantie für eine bestimmte Sicherheitsstufe, die Unmöglichkeit von Angriffen oder die Fehlerfreiheit der Software. Nutzer sind verpflichtet, Backups der Seed Phrase außerhalb der Anwendung sicher aufzubewahren, starke Passwörter zu verwenden und Transaktionen in der jeweiligen Blockchain selbst zu prüfen.</p>
+        <p>On-Chain-Transaktionen sind unwiderruflich. DayFlow stellt keine Anlage-, Steuer- oder Rechtsberatung dar; alle Entscheidungen liegen beim Nutzer.</p>
+        <h3>5. KI-Funktionen und Analysehinweise</h3>
+        <p>Ausgaben der KI können unvollständig oder fehlerhaft sein. Entscheidungen auf Basis von KI-Inhalten erfolgen ausschließlich auf eigenes Risiko. Nutzer sind verpflichtet, alle relevanten Informationen eigenständig zu prüfen.</p>
+        <h3>6. Verfügbarkeit und Änderungen</h3>
+        <p>DayFlow bemüht sich um eine hohe Verfügbarkeit, schuldet jedoch keine unterbrechungsfreie Nutzbarkeit. Funktionen, Datenquellen und Inhalte können jederzeit angepasst, eingeschränkt oder eingestellt werden.</p>
+        <h3>7. Haftung</h3>
+        <p>DayFlow haftet unbeschränkt bei Vorsatz und grober Fahrlässigkeit sowie bei Verletzung von Leben, Körper und Gesundheit. Bei leichter Fahrlässigkeit haftet DayFlow nur bei Verletzung wesentlicher Vertragspflichten (Kardinalpflichten), begrenzt auf den vorhersehbaren, vertragstypischen Schaden.</p>
+        <h3>8. Markt- und Kursdaten</h3>
+        <p>Kurs-, News- und Marktdaten stammen von Drittanbietern. Für Richtigkeit, Vollständigkeit, Aktualität und Eignung dieser Drittinhalte übernimmt DayFlow keine Gewähr.</p>
+        <h3>9. Verbotene Nutzung</h3>
+        <ul>
+          <li>Automatisierte Massenabfragen, Scraping und Störungen des Dienstes sind unzulässig.</li>
+          <li>Rechtswidrige, missbräuchliche oder sicherheitsgefährdende Nutzung ist untersagt.</li>
+        </ul>
+        <h3>10. Datenschutz</h3>
+        <p>Die Verarbeitung personenbezogener Daten richtet sich nach der jeweils geltenden Datenschutzerklärung. Nutzer bestätigen, diese zur Kenntnis genommen zu haben.</p>
+        <h3>11. Schlussbestimmungen</h3>
+        <p>Es gilt deutsches Recht unter Ausschluss des UN-Kaufrechts, soweit gesetzlich zulässig. Sollten einzelne Bestimmungen unwirksam sein, bleibt die Wirksamkeit der übrigen Regelungen unberührt.</p>
+        <p><strong>Hinweis:</strong> Dieser Text ist ein rechtlich belastbarer Standard für digitale Informationsdienste, ersetzt aber keine individuelle Rechtsberatung für Sonderfälle (z. B. B2B-Vertragsmodelle, kostenpflichtige Abos, internationale Zielmärkte).</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="privacyModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="privacyModalTitle">
+    <div class="auth-card legal-modal-card">
+      <button id="closePrivacyModalButton" class="auth-close" type="button">✕</button>
+      <div class="auth-card-header">
+        <h2 id="privacyModalTitle" class="auth-card-title"><span>Datenschutz</span></h2>
+        <div class="auth-card-subtitle">Informationen zur Verarbeitung personenbezogener Daten (Stand: Mai 2026)</div>
+      </div>
+      <div class="legal-body">
+        <h3>1. Verantwortlicher</h3>
+        <p>Verantwortlich für diese Web‑Anwendung ist der im <strong>Impressum</strong> genannte Anbieter. Ergänzend gelten die technischen und organisatorischen Möglichkeiten eines rein browserbasierten Informations‑Dashboards ohne eigene Vermögensverwaltung.</p>
+        <h3>2. Welche Daten fallen an?</h3>
+        <ul>
+          <li><strong>Lokales Konto (Vault):</strong> Benutzername und Passwort‑Hash werden im Browser (<code>localStorage</code>) gespeichert. Bei optionaler DayFlow‑Wallet zusätzlich verschlüsselt die mnemonic‑basierte Wallet‑Daten lokal auf dem Gerät.</li>
+          <li><strong>Cloud‑Konto (optional):</strong> Bei Nutzung von E‑Mail‑Login können E‑Mail‑Adresse und Authentisierungsdaten über den gewählten Anbieter (z. B. Supabase) verarbeitet werden — gemäß dessen Datenschutzhinweisen.</li>
+          <li><strong>Nutzungs‑ &amp; Präferenzdaten:</strong> z. B. Sprache, Watchlist, Paper‑Trading‑Simulation, gespeicherte Tabellenfilter — überwiegend lokal im Browser.</li>
+          <li><strong>Technische Zugriffe:</strong> Beim Aufruf von Datenquellen (CoinGecko, Binance, RSS, WalletConnect, CDNs) können IP‑Adresse und standardisierte Server‑Logs beim jeweiligen Dritten anfallen.</li>
+        </ul>
+        <h3>3. Zwecke</h3>
+        <p>Bereitstellung des Dashboards, Personalisierung (Sprache, Watchlist), optionale Wallet‑ und KI‑Funktionen, Sicherheit und Fehleranalyse im Rahmen des üblichen Web‑Betriebs.</p>
+        <h3>4. Rechtsgrundlagen (DSGVO‑orientiert)</h3>
+        <p>Soweit Daten für die Nutzung der App erforderlich sind: Vertragserfüllung bzw. vorvertragliche Maßnahmen (Art. 6 Abs. 1 lit. b DSGVO). Soweit technische Protokolle oder Sicherheitsmaßnahmen: berechtigtes Interesse (Art. 6 Abs. 1 lit. f DSGVO). Einwilligungen (z. B. Cookies, sofern eingesetzt) nur nach ausdrücklicher Zustimmung.</p>
+        <h3>5. Drittanbieter &amp; Übermittlungen</h3>
+        <p>Marktdaten, Charts und Nachrichten stammen von unabhängigen APIs und Servern (u. a. außerhalb der EU). Es besteht kein Auftrag zur dauerhaften Speicherung durch DayFlow auf eigenen Backend‑Servern für die Kern‑Marktfunktion — die App ist überwiegend <strong>clientseitig</strong> organisiert. WalletConnect und Browser‑Wallets verarbeiten Verbindungs‑ und Transaktionsdaten direkt zwischen dir und dem Wallet‑Anbieter.</p>
+        <h3>6. Speicherdauer</h3>
+        <p>Lokale Daten bleiben, bis du sie im Browser löschst oder die App‑Daten zurücksetzt. Cloud‑Daten richten sich nach dem Konto‑Anbieter. Serverlogs Dritter richten sich nach deren Richtlinien.</p>
+        <h3>7. Deine Rechte</h3>
+        <p>Du hast nach Maßgabe der DSGVO Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit sowie Widerspruch gegen bestimmte Verarbeitungen. Ansprechpartner: siehe <strong>Impressum</strong>. Zudem hast du ein Beschwerderecht bei einer Aufsichtsbehörde.</p>
+        <h3>8. Sicherheit</h3>
+        <p>Die Anwendung nutzt moderne Browser‑Standards (HTTPS, CSP gemäß Konfiguration). Dennoch ist kein digitales System absolut sicher; nutze aktuelle Browser, keine kompromittierten Erweiterungen und sichere Endgeräte.</p>
+        <p><strong>Hinweis:</strong> Keine Rechtsberatung — bei konkreten Compliance‑Fragen für Unternehmen oder internationale Märkte Rechtsberatung einholen.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="impressumModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="impressumModalTitle">
+    <div class="auth-card legal-modal-card">
+      <button id="closeImpressumModalButton" class="auth-close" type="button">✕</button>
+      <div class="auth-card-header">
+        <h2 id="impressumModalTitle" class="auth-card-title"><span>Impressum</span></h2>
+        <div class="auth-card-subtitle">Angaben gemäß § 5 TMG / Art. 5 DDG (Stand: Mai 2026)</div>
+      </div>
+      <div class="legal-body">
+        <h3>Diensteanbieter</h3>
+        <p><strong>[Firma / Name des Betreibers]</strong><br />
+        [Straße und Hausnummer]<br />
+        [PLZ und Ort]<br />
+        Deutschland</p>
+        <h3>Kontakt</h3>
+        <p>E‑Mail: <strong>[kontakt@example.com]</strong><br />
+        Telefon (optional): [ … ]</p>
+        <h3>Umsatzsteuer &amp; Registereintrag</h3>
+        <p>USt‑IdNr. / Handelsregister: <strong>[falls zutreffend, sonst: nicht anwendbar / Kleinunternehmer / Privatprojekt]</strong></p>
+        <h3>Verantwortlich für den Inhalt (§ 55 Abs. 2 RStV)</h3>
+        <p>[Name, Anschrift wie oben]</p>
+        <h3>Streitschlichtung</h3>
+        <p>Die Europäische Kommission stellt eine Plattform zur Online‑Streitbeilegung (OS) bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer">https://ec.europa.eu/consumers/odr/</a>. Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen — soweit gesetzlich zulässig.</p>
+        <p><strong>Platzhalter:</strong> Trage die finalen Impressumsdaten im HTML unter <code>impressumModal</code> ein oder ersetze sie durch eine feste Seite auf deiner Domain.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="riskDisclaimerModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="riskModalTitle">
+    <div class="auth-card legal-modal-card">
+      <button id="closeRiskModalButton" class="auth-close" type="button">✕</button>
+      <div class="auth-card-header">
+        <h2 id="riskModalTitle" class="auth-card-title"><span>Risiko- &amp; Produkt­hinweise</span></h2>
+        <div class="auth-card-subtitle">Kurzfassung — keine Anlageberatung</div>
+      </div>
+      <div class="legal-body">
+        <h3>1. Informationscharakter</h3>
+        <p>DayFlow zeigt Markt‑ und Nachrichtendaten sowie rechnerische und KI‑gestützte Zusammenfassungen. Das ist <strong>keine</strong> individuelle Anlage‑, Steuer‑ oder Rechtsberatung und <strong>kein</strong> Angebot zum Erwerb von Finanzinstrumenten.</p>
+        <h3>2. Krypto‑ und Hebelrisiken</h3>
+        <p>Kryptowährungen sind volatil; Totalverlust ist möglich. Deriv‑ und Paper‑Simulationen dienen nur der Veranschaulichung. Echte On‑Chain‑Transaktionen sind in der Regel unwiderruflich.</p>
+        <h3>3. Datenquellen</h3>
+        <p>Kurse und News können verzögert oder unvollständig sein. Prüfe kritische Entscheidungen immer an primären Quellen (Börse, Explorer, Offenlegungen).</p>
+        <h3>4. KI</h3>
+        <p>Sprachmodelle können halluzinieren oder veraltete Information wiedergeben. Nutze KI‑Ausgaben nur als Strukturhilfe.</p>
+        <h3>5. Externe Dienste &amp; On-Chain-Swaps</h3>
+        <p>WalletConnect, Browser-Wallets, Börsen sowie Aggregatoren (z. B. <strong>1inch</strong>) unterliegen eigenen Bedingungen, Gebühren und technischen Risiken. Swaps laufen <strong>direkt über deine Wallet-Signatur</strong> — DayFlow ist kein Vertragspartner dieser On-Chain-Transaktionen. Partner‑ und Affiliate‑Hinweise sind in der App gekennzeichnet.</p>
+        <p>Ausführliche Regelungen: <strong>AGB</strong> und <strong>Datenschutz</strong> in den Einstellungen.</p>
+      </div>
+    </div>
+  </div>
+
+  <header>
+    <div class="header-top df-layout-inner">
+      <button type="button" class="logo df-logo-home-btn" id="logoHomeBtn" aria-label="DayFlow Startseite">
+        <div class="logo-icon" aria-hidden="true"><img src="./icons/dayflow-icon.svg" alt="" width="32" height="32" decoding="async"></div>
+        <div class="logo-text">Day<span>Flow</span></div>
+      </button>
+
+        <div class="header-actions">
+        <div id="apiHealthStrip" class="api-health-strip" role="status" aria-live="polite"></div>
+        <div class="global-metrics" id="globalMetrics">
+          <div class="metric-skeleton-row" aria-busy="true" aria-label="Lade Kennzahlen">
+            <div class="ui-skeleton"></div>
+            <div class="ui-skeleton"></div>
+            <div class="ui-skeleton"></div>
+            <div class="ui-skeleton"></div>
+          </div>
+        </div>
+
+        <button id="installAppButton" class="auth-button install-app-btn is-hidden" type="button" title="DayFlow als App installieren">Installieren</button>
+        <button id="openSettingsButton" class="auth-button icon-button" type="button" title="Einstellungen">⚙</button>
+        <button id="openShortcutsHelpBtn" class="auth-button icon-button" type="button" title="Tastenkürzel (?)" aria-label="Tastenkürzel anzeigen">?</button>
+
+        <div class="auth-status df-wallet-header">
+          <div id="walletHeaderGuest" class="auth-guest">
+            <button id="headerWalletConnectBtn" class="auth-button auth-button-login-cmc" type="button">Wallet Connect</button>
+          </div>
+          <div id="walletHeaderConnected" class="auth-user">
+            <div id="walletHeaderAvatar" class="auth-avatar" aria-hidden="true">◇</div>
+            <div class="auth-user-text">
+              <div id="walletHeaderAddress" class="auth-user-name">—</div>
+              <div id="walletHeaderSub" class="auth-user-sub">Wallet verbunden</div>
+            </div>
+            <button id="headerWalletDisconnectBtn" class="auth-button" type="button">Trennen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cmc-nav-stack df-layout-inner" id="cmcNavStack">
+      <nav id="dfPrimaryNav" class="df-primary-nav" aria-label="Hauptbereiche">
+        <button type="button" class="df-primary-nav-btn is-active" data-df-nav="market">Markt</button>
+        <button type="button" class="df-primary-nav-btn" data-df-nav="swap">Swap</button>
+        <button type="button" class="df-primary-nav-btn" data-df-nav="pools">Pools</button>
+        <button type="button" class="df-primary-nav-btn" data-df-nav="simulate">Üben</button>
+        <button type="button" class="df-primary-nav-btn" data-df-nav="more" title="Wale, Gas &amp; Airdrops">Mehr</button>
+        <button type="button" class="df-primary-nav-btn df-primary-nav-btn--ai" data-df-nav="ai">KI</button>
+      </nav>
+
+      <div class="subnav cmc-toolbar-row" id="dayflowToolbarNav">
+      <div class="subnav-left" id="dfMarketToolbar">
+        <button id="homeButton" class="pill" type="button">Markt</button>
+        <div class="pill active" data-mode="all">Alle</div>
+        <div class="pill" data-mode="gainers">Gewinner</div>
+        <div class="pill" data-mode="losers">Verlierer</div>
+        <div class="pill" data-mode="watchlist">Watchlist</div>
+      </div>
+      <button id="walletButton" type="button" hidden aria-hidden="true" tabindex="-1"></button>
+      <button id="swapViewButton" type="button" hidden aria-hidden="true" tabindex="-1"></button>
+      <button id="paperTradingButton" type="button" hidden aria-hidden="true" tabindex="-1"></button>
+      <button id="predictionMarketsButton" type="button" hidden aria-hidden="true" tabindex="-1"></button>
+      <button id="smartHubButton" type="button" hidden aria-hidden="true" tabindex="-1"></button>
+      <input id="searchInput" class="search-box" placeholder="Suche nach Name oder Symbol..." />
+      <select id="assetTypeFilter" class="category-filter" title="Asset-Typ filtern">
+        <option value="all">Crypto + Aktien</option>
+        <option value="crypto">Nur Crypto</option>
+        <option value="stock">Nur Aktien</option>
+      </select>
+      <select id="categoryFilter" class="category-filter" title="Coin-Kategorie filtern">
+        <option value="all">Alle Kategorien</option>
+        <option value="Stock">Aktien</option>
+        <option value="Major">Majors</option>
+        <option value="Stablecoin">Stablecoins</option>
+        <option value="Meme">Memecoins</option>
+        <option value="DeFi">DeFi</option>
+        <option value="AI">AI Coins</option>
+        <option value="Gaming/NFT">Gaming/NFT</option>
+        <option value="Altcoin">Altcoins</option>
+      </select>
+      </div>
+    </div>
+  </header>
+
+  <div id="dayflowDataBanner" class="dayflow-data-banner is-hidden" role="status" aria-live="polite"></div>
+  <div id="sessionActivityBanner" class="session-activity-banner is-hidden" role="status" aria-live="polite"></div>
+
+  <main id="main-content" class="df-layout-inner" tabindex="-1">
+
+    <section id="swapView" class="view-section df-swap-page df-swap-page--pro df-swap-page--uni">
+      <div class="df-uni-scene" aria-hidden="true">
+        <div class="df-uni-bg-mesh"></div>
+        <div class="df-uni-bg-grid"></div>
+        <svg class="df-uni-routes" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="dfUniRouteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.55" />
+              <stop offset="45%" stop-color="#ff007a" stop-opacity="0.85" />
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0.5" />
+            </linearGradient>
+            <filter id="dfUniRouteGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="3" result="blur" />
+              <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+          </defs>
+          <path class="df-uni-route-path df-uni-route-path--a" d="M 80 520 Q 360 120 720 460 T 1380 380" />
+          <path class="df-uni-route-path df-uni-route-path--b" d="M 60 280 Q 520 680 720 440 T 1320 620" />
+          <path class="df-uni-route-path df-uni-route-path--c" d="M 200 760 Q 480 340 720 480 T 1200 200" />
+          <path class="df-uni-route-path df-uni-route-path--d" d="M 1240 720 Q 900 200 720 420 T 280 160" />
+          <path class="df-uni-route-path df-uni-route-path--e" d="M 1100 120 Q 820 520 720 450 T 340 780" />
+        </svg>
+        <canvas id="swapFlowCanvas" class="df-uni-flow-canvas"></canvas>
+        <div id="swapOrbLayer" class="df-uni-orb-layer"></div>
+        <div class="df-uni-scene-glow"></div>
+        <div class="df-uni-scene-vignette"></div>
+      </div>
+      <div class="df-uni-stage">
+        <header class="df-uni-hero">
+          <h1 class="df-uni-hero-title">Jederzeit tauschen.</h1>
+          <p class="df-uni-hero-sub">Ausführung bei <strong>1inch</strong> · DayFlow ohne Verwahrung · keine Keys hier.</p>
+        </header>
+
+        <div class="aggregator-page-layout df-swap-pro-layout">
+          <aside id="swapWalletPanel" class="df-swap-wallet-panel" aria-label="Wallet-Guthaben für Swap">
+            <div class="df-swap-wallet-panel-inner">
+              <header class="df-swap-wallet-panel-head">
+                <h2 class="df-swap-wallet-panel-title">Dein Wallet</h2>
+                <p id="swapWalletPanelAddr" class="df-swap-wallet-panel-addr">Nicht verbunden</p>
+              </header>
+              <div id="swapWalletPanelTotal" class="df-swap-wallet-panel-total">
+                <span class="df-swap-wallet-panel-total-label">Gesamt (EVM, Schätzung)</span>
+                <strong id="swapWalletPanelTotalUsd" class="df-swap-wallet-panel-total-val">—</strong>
+              </div>
+              <div id="swapWalletPanelActive" class="df-swap-wallet-panel-active is-hidden" aria-live="polite">
+                <span class="df-swap-wallet-panel-active-label">Verkaufen · aktuelles Netzwerk</span>
+                <div class="df-swap-wallet-panel-active-row">
+                  <strong id="swapWalletPanelActiveBal">—</strong>
+                  <button type="button" id="swapWalletMaxBtn" class="df-swap-wallet-max-btn" title="Maximalen Betrag einsetzen">MAX</button>
+                </div>
+              </div>
+              <div id="swapWalletPanelChains" class="df-swap-wallet-panel-chains" role="region" aria-label="Guthaben nach Blockchain">
+                <p class="df-swap-wallet-panel-chains-title">Nach Blockchain</p>
+                <div id="swapWalletPanelChainsList" class="df-swap-wallet-panel-chains-list">
+                  <p class="df-swap-wallet-panel-muted">Wallet verbinden, um Salden zu sehen.</p>
+                </div>
+              </div>
+              <p id="swapWalletPanelNote" class="df-swap-wallet-panel-note">Native + gängige Tokens je Chain · öffentliche RPC · keine vollständige Token-Liste.</p>
+            </div>
+          </aside>
+          <div class="aggregator-page-main df-swap-pro-main">
+            <article class="df-swap-pro-card df-uni-card">
+              <div class="df-uni-card-top">
+                <select id="swapChainSelect" class="df-uni-chain-native" aria-hidden="true" tabindex="-1"></select>
+                <span id="swapNetworkBadge" class="df-uni-network-badge" title="Netzwerk folgt dem gewählten Token">Ethereum</span>
+                <button type="button" class="df-uni-settings-btn" id="swapUniSettingsBtn" aria-expanded="false" aria-controls="swapUniSettingsPanel" title="Slippage">⚙</button>
+                <button type="button" class="df-swap-pro-cap-link" id="swapOpenAgbBtn">Rechtliches</button>
+              </div>
+              <div class="df-uni-settings-panel" id="swapUniSettingsPanel">
+                <div class="df-swap-pro-toolbar df-swap-pro-toolbar--slip-only">
+                  <div class="df-swap-pro-slip">
+                    <label class="df-swap-pro-slip-label" for="swapSlippage">Slippage-Toleranz</label>
+                    <div class="df-swap-slip-presets" role="group" aria-label="Slippage Schnellauswahl">
+                      <button type="button" class="df-swap-slip-preset" data-swap-slip-preset="0.1">0.1%</button>
+                      <button type="button" class="df-swap-slip-preset" data-swap-slip-preset="0.5">0.5%</button>
+                      <button type="button" class="df-swap-slip-preset is-active" data-swap-slip-preset="1">1%</button>
+                      <button type="button" class="df-swap-slip-preset" data-swap-slip-preset="3">3%</button>
+                      <button type="button" class="df-swap-slip-preset" data-swap-slip-preset="5">5%</button>
+                    </div>
+                    <div class="df-swap-pro-slip-row">
+                      <input id="swapSlippage" class="df-swap-pro-slip-input" type="number" min="0.1" max="5" step="0.1" value="1" aria-describedby="swapSlippageHint" />
+                      <span id="swapSlippageSuffix" class="df-swap-pro-slip-suffix" aria-hidden="true">%</span>
+                    </div>
+                    <p id="swapSlippageHint" class="df-swap-slip-hint">0,1–5 % · Routing nur über 1inch (keine eigenen Contracts)</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="df-swap-pro-io">
+                <div class="df-swap-pro-io-pane df-swap-pro-io-pane--from">
+                  <span class="df-swap-pro-io-label">Verkaufen</span>
+                  <div class="df-swap-pro-io-amt-row">
+                    <div id="swapTokenAmountRow" class="df-swap-pro-io-amt-cell">
+                      <input id="swapAmountIn" type="text" inputmode="decimal" autocomplete="off" class="df-swap-pro-io-amt" placeholder="0" aria-label="Betrag verkaufen" />
+                      <p id="swapFromWalletBal" class="df-swap-wallet-bal-line" aria-live="polite"></p>
+                    </div>
+                    <div class="df-uni-token-slot">
+                      <select id="swapFromSelect" class="df-swap-pro-io-token df-uni-token-native" aria-label="Token verkaufen" tabindex="-1"></select>
+                      <button type="button" id="swapFromTokenBtn" class="df-uni-token-pill-btn" aria-haspopup="dialog" aria-controls="swapTokenModal">Token wählen</button>
+                    </div>
+                  </div>
+                  <fieldset class="df-swap-pro-io-extra">
+                    <legend class="df-swap-pro-sr-only">Betragsmodus</legend>
+                    <div class="df-swap-pro-tabs">
+                      <label class="df-swap-pro-tab"><input type="radio" name="swapAmtMode" value="token" checked /><span>Token</span></label>
+                      <label class="df-swap-pro-tab"><input type="radio" name="swapAmtMode" value="fiat" /><span>Fiat</span></label>
+                    </div>
+                    <div id="swapFiatAmountRow" class="df-swap-pro-fiat-inline is-hidden">
+                      <input id="swapFiatAmount" type="text" inputmode="decimal" autocomplete="off" class="df-swap-pro-fiat-inp" placeholder="Betrag" aria-label="Fiatbetrag" />
+                      <select id="swapFiatVs" class="df-swap-pro-fiat-vs" aria-label="Fiatwährung">
+                        <option value="eur">EUR</option>
+                        <option value="usd">USD</option>
+                      </select>
+                    </div>
+                    <p id="swapFiatHint" class="df-swap-pro-io-hint is-hidden">Spot-Umrechnung · Orientierung.</p>
+                  </fieldset>
+                </div>
+
+                <button type="button" id="swapFlipBtn" class="df-swap-pro-flip" aria-label="Verkaufen und Kaufen tauschen">↓</button>
+
+                <div class="df-swap-pro-io-pane df-swap-pro-io-pane--to">
+                  <span class="df-swap-pro-io-label">Kaufen</span>
+                  <div class="df-swap-pro-io-amt-row df-swap-pro-io-amt-row--to">
+                    <span id="swapOutEst" class="df-swap-pro-io-receive">0</span>
+                    <div class="df-uni-token-slot">
+                      <select id="swapToSelect" class="df-swap-pro-io-token df-uni-token-native" aria-label="Token kaufen" tabindex="-1"></select>
+                      <button type="button" id="swapToTokenBtn" class="df-uni-token-pill-btn df-uni-token-pill-btn--pick" aria-haspopup="dialog" aria-controls="swapTokenModal">Token wählen</button>
+                    </div>
+                  </div>
+                  <span id="swapOutFiatEst" class="df-swap-pro-io-receive-sub" aria-live="polite"></span>
+                </div>
+              </div>
+
+              <div id="dfSwapChips" class="df-swap-chips" aria-label="Letzte und Favoriten-Paare"></div>
+              <p class="df-swap-gas-opt-link"><button type="button" id="swapOpenGasOptBtn" class="df-swap-pro-foot-link">Gas Optimizer — Chains &amp; beste Uhrzeit</button></p>
+              <p id="swapGasHint" class="df-swap-gas-hint" aria-live="polite"></p>
+
+              <div class="df-swap-pro-actions">
+                <button type="button" id="swapOpen1inchBtn" class="df-swap-pro-btn df-swap-pro-btn--accent" title="1inch mit gleichen Tokens, Netzwerk und Menge öffnen">Bei 1inch tauschen</button>
+                <button type="button" id="swapQuoteBtn" class="df-swap-pro-btn df-swap-pro-btn--ghost">Quote aktualisieren</button>
+              </div>
+
+              <p id="swapQuotePanel" class="df-swap-pro-status"></p>
+              <p id="swapQuoteRefreshNote" class="df-swap-quote-refresh" aria-live="polite"></p>
+
+              <div id="swapRouteViz" class="df-swap-route-viz" hidden>
+                <span class="df-swap-route-viz-label">Route</span>
+                <div id="swapRoutePath" class="df-swap-route-path" aria-label="Swap-Route"></div>
+                <div id="swapRouteHops" class="df-swap-route-hops" aria-label="Routing-Hops"></div>
+                <p id="swapRouteDexLine" class="df-swap-route-dex"></p>
+              </div>
+
+              <div id="swapQuoteDl" class="df-swap-pro-meta" hidden>
+                <div class="df-swap-quote-head">
+                  <div class="df-swap-quote-head-main">
+                    <span class="df-swap-quote-eyebrow">Du bekommst mindestens</span>
+                    <strong id="swapMinReceivedLine" class="df-swap-quote-min">—</strong>
+                    <p id="swapFeeAccuracyLine" class="df-swap-quote-sub">—</p>
+                  </div>
+                  <div class="df-swap-quote-rate-box">
+                    <span class="df-swap-quote-rate-label">Kurs</span>
+                    <span id="swapRateLine" class="df-swap-quote-rate-val">—</span>
+                  </div>
+                </div>
+                <div class="df-swap-quote-grid">
+                  <article class="df-swap-quote-stat">
+                    <span class="df-swap-quote-stat-label">Price Impact</span>
+                    <strong id="swapPriceImpactLine" class="df-swap-impact">—</strong>
+                    <span class="df-swap-quote-stat-sub">Vergleich zur Spot-Schätzung</span>
+                  </article>
+                  <article class="df-swap-quote-stat">
+                    <span class="df-swap-quote-stat-label">Netzwerk</span>
+                    <strong id="swapGasMarketLine" class="df-swap-quote-stat-val">—</strong>
+                    <span id="swapGasBaseLine" class="df-swap-quote-stat-sub">—</span>
+                  </article>
+                  <article class="df-swap-quote-stat">
+                    <span class="df-swap-quote-stat-label">Gas-Limit</span>
+                    <strong id="swapGasUnitsLine" class="df-swap-quote-stat-val">—</strong>
+                    <span id="swapGasSourceLine" class="df-swap-quote-stat-sub">—</span>
+                  </article>
+                </div>
+                <div class="df-swap-fees-panel" aria-label="Geschätzte Fees">
+                  <div class="df-swap-fees-panel-head">
+                    <span class="df-swap-fees-head">Geschätzte Fees</span>
+                    <strong id="swapFeeTotalLine" class="df-swap-fee-total">—</strong>
+                  </div>
+                  <div class="df-swap-pro-meta-row df-swap-pro-meta-row--sub"><span>Netzwerkfee</span><span id="swapFeeGasLine">—</span></div>
+                  <div class="df-swap-pro-meta-row df-swap-pro-meta-row--sub"><span>DEX-Liquidität</span><span id="swapFeeDexLine">—</span></div>
+                  <div class="df-swap-pro-meta-row df-swap-pro-meta-row--sub"><span>Aggregator</span><span id="swapFeeAggLine">—</span></div>
+                </div>
+              </div>
+
+              <p class="df-swap-pro-trust">Non-custodial · nur 1inch-Routing · keine DayFlow-On-Chain-Gebühren.</p>
+
+              <div class="df-swap-pro-foot">
+                <button type="button" id="swapGoWalletBtn" class="df-swap-pro-foot-link">Wallet-Bereich</button>
+                <p id="swapWalletStatus" class="df-swap-pro-foot-note"></p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <p class="df-uni-foot">Krypto tauschen mit <strong>0 App-Gebühren</strong> bei DayFlow — über 1inch auf <strong>19+ Netzwerken</strong> (Ethereum, BNB, Polygon, Base, Arbitrum, …).</p>
+      </div>
+    </section>
+
+    <section id="moreView" class="df-more-hub view-section" style="display:none" aria-label="Mehr">
+      <header class="df-more-hub-head">
+        <h1 class="df-more-hub-title">Mehr</h1>
+        <p class="df-more-hub-lead">Whale Tracker, Gas Optimizer und Airdrop Finder — gebündelt, ohne Extra-Nav-Slots.</p>
+      </header>
+      <nav class="df-more-subnav" role="tablist" aria-label="Mehr-Bereiche">
+        <button type="button" class="df-more-subnav-btn is-active" data-df-more-tab="whales" role="tab" aria-selected="true">
+          <span class="df-more-subnav-ico" aria-hidden="true">🐋</span>
+          <span>Wale</span>
+        </button>
+        <button type="button" class="df-more-subnav-btn" data-df-more-tab="gas" role="tab" aria-selected="false" title="Gas Fee Optimizer">
+          <span class="df-more-subnav-ico" aria-hidden="true">⛽</span>
+          <span>Gas</span>
+        </button>
+        <button type="button" class="df-more-subnav-btn" data-df-more-tab="airdrops" role="tab" aria-selected="false">
+          <span class="df-more-subnav-ico" aria-hidden="true">🎁</span>
+          <span>Airdrops</span>
+        </button>
+      </nav>
+      <div id="moreHubPanels" class="df-more-panels"></div>
+    </section>
+
+    <section id="gasView" class="view-section df-gas-page" style="display:none" aria-label="Gas Fee Optimizer">
+      <header class="df-gas-head">
+        <div>
+          <h1 class="df-gas-title">Gas Optimizer</h1>
+          <p class="df-gas-lead">Vergleich EVM-Netzwerke, Swap-Schätzungen und beste Tageszeiten — nur Orientierung, keine Garantie.</p>
+        </div>
+        <div class="df-gas-head-actions">
+          <span id="gasOptUpdated" aria-live="polite"></span>
+          <button type="button" id="gasOptRefreshBtn" class="df-gas-refresh-btn">Aktualisieren</button>
+        </div>
+      </header>
+      <div class="df-gas-grid">
+        <article class="df-gas-card">
+          <h2>Beste Uhrzeit zum Swappen</h2>
+          <div id="gasOptBestTimes"><p class="df-gas-loading">Lade…</p></div>
+          <div id="gasOptHeatmap" aria-hidden="false"></div>
+        </article>
+        <article class="df-gas-card">
+          <h2>Günstigste Chain (Swap ~320k gas)</h2>
+          <ol id="gasOptCheapestChains" class="df-gas-rank"><li class="df-gas-loading">Lade…</li></ol>
+        </article>
+        <article class="df-gas-card df-gas-card--wide">
+          <h2>Gas-Vergleich zwischen Chains</h2>
+          <div id="gasOptCompareWrap" class="df-gas-table-wrap"><p class="df-gas-loading">Lade…</p></div>
+        </article>
+        <article class="df-gas-card df-gas-card--wide">
+          <h2>Live Gas Chart (24h, lokal)</h2>
+          <div class="df-gas-chart-toolbar">
+            <label class="visually-hidden" for="gasOptChartChain">Netzwerk für Chart</label>
+            <select id="gasOptChartChain" aria-label="Netzwerk für Gas-Chart"></select>
+          </div>
+          <canvas id="gasOptChartCanvas" class="df-gas-chart-canvas" width="640" height="160" role="img" aria-label="Gas-Verlauf in Gwei"></canvas>
+          <p id="gasOptChartNote" class="muted-small"></p>
+        </article>
+      </div>
+      <p class="df-gas-disclaimer">Alle Werte sind Schätzungen aus öffentlichen RPCs (<code>eth_gasPrice</code>) und CoinGecko-Spotpreisen. Tatsächliche Swap-Gas-Kosten hängen von Route, Vertrag und Netzwerklast ab. Keine Anlageberatung.</p>
+    </section>
+
+    <section id="walletView" class="view-section wallet-page df-app-pro-wallet df-removed" hidden aria-hidden="true">
+      <header class="df-pro-page-head df-wallet-pro-head">
+        <h1 class="df-pro-page-title">Wallet</h1>
+        <p class="df-pro-page-lead">Verbindung nur in deiner Wallet — DayFlow ohne Verwahrung, keine Private Keys.</p>
+        <p id="walletGasPill" class="wallet-gas-pill is-hidden" role="status" aria-live="polite"></p>
+      </header>
+      <div class="df-wallet-pro-card">
+      <div id="walletConnectSection">
+        <div class="wallet-connect-actions">
+          <button id="connectWalletBtn" class="auth-button primary" type="button">WalletConnect</button>
+          <button id="connectInjectedWalletBtn" class="auth-button" type="button">Browser‑Wallet</button>
+          <button id="disconnectWalletBtn" class="auth-button" type="button" style="display:none;">Verbindung trennen</button>
+        </div>
+        <p class="wallet-connect-hint">Nutze <strong>http://localhost</strong> oder <strong>HTTPS</strong> (nicht <code>file://</code>) — sonst scheitern WalletConnect und Hintergrund-Caches oft. Im Modal (Reown) z. B. Trust, Rainbow, OKX, Ledger Live u. v. m.</p>
+        <div id="walletReadOnlyPanel" class="wallet-readonly-panel" role="group" aria-label="Portfolio nur Lesen">
+          <span class="wallet-readonly-label">Ohne Signatur (Ethereum L1):</span>
+          <input id="walletReadOnlyInput" class="auth-input" type="text" inputmode="text" autocomplete="off" spellcheck="false" placeholder="0x… oder ENS-Name (vitalik.eth)" aria-label="Ethereum-Adresse oder ENS" />
+          <button type="button" class="auth-button primary" id="walletReadOnlyBtn">Portfolio laden</button>
+        </div>
+        <div class="df-wallet-book" id="dfWalletBook">
+          <h3>Adressbuch (Multi-Wallet)</h3>
+          <div class="df-wallet-book-form">
+            <input id="walletBookLabelInput" class="auth-input" type="text" placeholder="Label" autocomplete="off" />
+            <input id="walletBookAddrInput" class="auth-input" type="text" placeholder="0x… oder ENS" autocomplete="off" spellcheck="false" />
+            <button type="button" class="auth-button primary" id="walletBookAddBtn">Hinzufügen</button>
+            <button type="button" class="auth-button" id="walletBookRefreshBtn">Salden</button>
+          </div>
+          <table class="markets-table" id="walletBookTable">
+            <thead><tr><th>Label</th><th>Adresse</th><th>ETH</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="walletChainSwitchRow" class="wallet-chain-switch-row is-hidden" role="group" aria-label="EVM-Netzwerk wechseln">
+          <label class="wallet-chain-label" for="walletChainPreset">Netzwerk</label>
+          <select id="walletChainPreset" class="auth-input wallet-chain-select">
+            <option value="1">Ethereum</option>
+            <option value="137">Polygon</option>
+            <option value="42161">Arbitrum One</option>
+            <option value="8453">Base</option>
+            <option value="10">Optimism</option>
+            <option value="56">BNB Smart Chain</option>
+            <option value="43114">Avalanche</option>
+            <option value="100">Gnosis</option>
+          </select>
+          <button type="button" class="auth-button primary" id="walletChainApplyBtn">Wechseln</button>
+        </div>
+        <div id="walletVaultLegacyBanner" class="wallet-vault-legacy-banner is-hidden" role="alert">
+          <strong>Hinweis:</strong> Auf diesem Gerät liegt noch ein älterer DayFlow-Vault (verschlüsselte Seed). DayFlow speichert <strong>keine Seed Phrases mehr</strong> — bitte Vault löschen und WalletConnect nutzen. Keine Custody, kein Recovery-Versprechen.
+          <button type="button" class="auth-button" id="walletVaultLegacyDeleteBtn">Alten Vault löschen</button>
+        </div>
+        <p class="wallet-non-custody-note">Non-Custody: DayFlow sendet keine Seeds/Keys an Server. Transaktionen nur in deiner Wallet (WalletConnect / Browser).</p>
+        <div id="walletStatus" class="panel"></div>
+      </div>
+
+      <div id="walletPortfolio" class="view-section wallet-portfolio-wrap" style="display:none;">
+        <header class="wallet-portfolio-head">
+          <div class="wallet-portfolio-head-row">
+            <h2 id="walletPortfolioTitle" class="wallet-portfolio-h2">Dein Portfolio</h2>
+            <span id="walletPortfolioChainPill" class="wallet-chain-pill is-hidden" role="status"></span>
+          </div>
+          <div id="walletPortfolioAddrRow" class="wallet-portfolio-addr-row is-hidden">
+            <code id="walletPortfolioAddr" class="wallet-portfolio-addr" title=""></code>
+            <button type="button" class="auth-button" id="walletCopyAddrBtn">Kopieren</button>
+          </div>
+        </header>
+        <div id="walletPortfolioToolbar" class="wallet-portfolio-toolbar is-hidden">
+          <span class="wallet-toolbar-hint">Export (lokal, keine Cloud):</span>
+          <button type="button" class="auth-button" id="walletExportCsvBtn">CSV</button>
+          <button type="button" class="auth-button" id="walletExportJsonBtn">JSON</button>
+        </div>
+        <div id="walletChainBanner" class="wallet-chain-banner is-hidden" role="status" aria-live="polite"></div>
+        <section id="walletNonEvmPanel" class="wallet-non-evm-panel is-hidden" aria-label="Weitere Blockchains">
+          <h3 class="wallet-non-evm-title">Weitere Blockchains</h3>
+          <p class="wallet-non-evm-hint muted-small">Bitcoin, Solana &amp; Co. haben <strong>eigene Adressen</strong> (nicht deine 0x-EVM-Adresse). DayFlow liest sie read-only über öffentliche APIs.</p>
+          <div class="wallet-non-evm-form">
+            <label class="visually-hidden" for="walletNonEvmChain">Blockchain</label>
+            <select id="walletNonEvmChain" class="settings-select">
+              <option value="btc">Bitcoin (BTC)</option>
+              <option value="sol">Solana (SOL)</option>
+              <option value="ltc">Litecoin (LTC)</option>
+              <option value="doge">Dogecoin (DOGE)</option>
+              <option value="trx">Tron (TRX)</option>
+            </select>
+            <label class="visually-hidden" for="walletNonEvmAddress">Adresse</label>
+            <input type="text" id="walletNonEvmAddress" class="search-box wallet-non-evm-input" placeholder="Adresse einfügen…" autocomplete="off" spellcheck="false" />
+            <button type="button" class="auth-button primary" id="walletNonEvmAddBtn">Hinzufügen</button>
+          </div>
+          <ul id="walletNonEvmList" class="wallet-non-evm-list" aria-live="polite"></ul>
+        </section>
+        <div id="walletWatchCompare" class="wallet-watch-compare" aria-live="polite"></div>
+
+        <div class="wallet-total-hero">
+          <div class="wallet-total-hero-label" id="walletTotalLabel">Geschätzter Gesamtwert (USD)</div>
+          <div class="wallet-total-hero-value">$<span id="walletTotalBalance">0.00</span></div>
+        </div>
+
+        <section class="wallet-portfolio-charts" id="walletPortfolioCharts" aria-label="Portfolio-Diagramme">
+          <div class="wallet-chart-card">
+            <h3 class="wallet-chart-title">Asset-Allocation</h3>
+            <div id="walletPieChart" class="wallet-pie-chart" role="img" aria-label="Verteilung nach USD-Wert"></div>
+            <ul id="walletPieLegend" class="wallet-pie-legend"></ul>
+          </div>
+          <div class="wallet-chart-card wallet-chart-card--wide">
+            <h3 class="wallet-chart-title">Performance (lokal, Schätzung)</h3>
+            <p class="wallet-chart-sub">Verlauf aus gespeicherten Portfolio-Snapshots in diesem Browser — kein Server.</p>
+            <div id="walletPerfChart" class="wallet-perf-chart" role="img" aria-label="Portfolio-Verlauf"></div>
+          </div>
+        </section>
+
+        <!-- Wallet Health Score -->
+        <div class="wallet-health-score" id="walletHealthScore">
+          <h3 class="wallet-health-title">💚 Wallet Health Score</h3>
+          <div class="health-metrics">
+            <div class="health-metric">
+              <div class="health-label">Diversifikation</div>
+              <div class="health-value" id="healthDiversification">-</div>
+              <div class="health-desc" id="healthDiversificationDesc">-</div>
+            </div>
+            <div class="health-metric">
+              <div class="health-label">Risiko-Level</div>
+              <div class="health-value" id="healthRisk">-</div>
+              <div class="health-desc" id="healthRiskDesc">-</div>
+            </div>
+            <div class="health-metric">
+              <div class="health-label">Stablecoin-Anteil</div>
+              <div class="health-value" id="healthStablecoins">-</div>
+              <div class="health-desc" id="healthStablecoinsDesc">-</div>
+            </div>
+            <div class="health-metric">
+              <div class="health-label">Volatilität</div>
+              <div class="health-value" id="healthVolatility">-</div>
+              <div class="health-desc" id="healthVolatilityDesc">-</div>
+            </div>
+            <div class="health-metric">
+              <div class="health-label">Token-Risiko</div>
+              <div class="health-value" id="healthTokenRisk">-</div>
+              <div class="health-desc" id="healthTokenRiskDesc">-</div>
+            </div>
+            <div class="health-metric">
+              <div class="health-label">Scam-/Spam-Check</div>
+              <div class="health-value" id="healthScam">-</div>
+              <div class="health-desc" id="healthScamDesc">-</div>
+            </div>
+            <div class="health-metric">
+              <div class="health-label">Gas-Risiko</div>
+              <div class="health-value" id="healthGas">-</div>
+              <div class="health-desc" id="healthGasDesc">-</div>
+            </div>
+          </div>
+          <div id="walletScamAlerts" class="wallet-scam-alerts is-hidden" role="alert"></div>
+          <div class="health-overall">
+            <strong>Gesamt-Score: <span id="healthOverallScore">-</span>/100</strong>
+            <div id="healthOverallDesc" class="card-note">-</div>
+            <p class="wallet-health-disclaimer">Keine Anlageberatung · EVM-Presets + optionale BTC/SOL/LTC/DOGE/TRX (nur Native) · GoPlus/RugCheck für ERC20/SOL wo scanbar.</p>
+          </div>
+        </div>
+
+        <section class="df-wallet-risk-monitor" id="dfWalletRiskMonitorPanel" aria-label="AI Risk Monitor">
+          <div id="dfWalletRiskMonitor" class="df-wallet-risk-monitor-inner">
+            <p class="df-risk-muted">Portfolio laden für automatische Risiko-Analyse…</p>
+          </div>
+        </section>
+
+        <section class="df-wallet-coach" id="dfWalletCoachPanel" aria-label="AI Portfolio Coach">
+          <div class="df-wallet-coach-head">
+            <h3>✦ AI Portfolio-Coach</h3>
+            <p id="dfWalletCoachStatus" class="muted-small">Wallet nicht verbunden.</p>
+            <p class="muted-small">Risiko, Diversifikation, Verbesserungen &amp; Warnungen — optional mit Turbo-KI vertiefen.</p>
+            <div class="df-wallet-coach-actions">
+              <button type="button" id="dfWalletCoachRun" class="auth-button primary">Coach starten</button>
+              <button type="button" id="dfWalletCoachAi" class="auth-button">Mit Turbo-KI</button>
+            </div>
+          </div>
+          <div id="dfWalletCoachResult" class="ai-coach-result" hidden></div>
+        </section>
+
+        <section class="df-wallet-alerts" id="dfWalletAlertsPanel" aria-label="Wallet Alerts"></section>
+
+        <div class="wallet-assets-bar">
+          <span id="walletAssetsHeading" class="wallet-assets-title">Assets</span>
+        </div>
+        <div class="wallet-coins" id="walletCoinsList"></div>
+        <div class="wallet-tx-toolbar is-hidden" id="walletTxToolbar">
+          <label class="visually-hidden" for="walletTxFilter">Transaktionen filtern</label>
+          <input id="walletTxFilter" type="search" placeholder="Hash / Richtung filtern…" autocomplete="off" />
+          <button type="button" class="auth-button" id="walletTxExportCsv">Tx CSV</button>
+        </div>
+        <div id="walletTxHistory" class="wallet-tx-history" aria-live="polite"></div>
+      </div>
+
+      <details class="wallet-privacy-disclosure panel">
+        <summary>Transparenz: Datenquellen, PWA &amp; Sicherheitshinweise</summary>
+        <div class="wallet-privacy-inner">
+          <p><strong>Lokal im Browser:</strong> Watchlist, Paper-Trading, Portfolio-Snapshots (Performance-Chart), Adressbuch, KI‑Chat-Verlauf. <strong>Keine Seed-Speicherung</strong> — ältere Vaults bitte löschen.</p>
+          <p><strong>Netzwerk:</strong> Marktdaten u. a. CoinGecko, News von RSS/APIs, Binance/WebSocket wo eingeschaltet. Wallet: Public RPC (z. B. Cloudflare Ethereum), WalletConnect/Reown, ggf. deine Browser‑Wallet.</p>
+          <p><strong>CDN‑Skripte:</strong> u. a. Web3.js, ethers, WalletConnect‑Provider von esm.run / jsDelivr — siehe Content‑Security‑Policy in <code>index.html</code>.</p>
+          <p><strong>Cloud‑Login (optional):</strong> Supabase Auth; der Schlüssel in der Seite ist wie jede öffentliche „anon“-Key sichtbar — Zugriff serverseitig mit Row‑Level‑Security absich.</p>
+          <p><strong>PWA:</strong> In Chrome/Edge erscheint oben ggf. <strong>Installieren</strong>, sobald der Browser die App anbietet — sonst über das Install-Symbol in der Adressleiste.</p>
+          <p class="pro-muted" style="margin:0;">Keine Anlageberatung. Phishing‑Schutz: Nur offizielle Domain nutzen und Transfers immer in der Wallet prüfen.</p>
+        </div>
+      </details>
+      </div>
+    </section>
+
+    <div id="dfSimulateChrome" class="df-simulate-chrome is-hidden" aria-hidden="true">
+      <header class="df-pro-page-head">
+        <h1 class="df-pro-page-title">Üben &amp; Märkte</h1>
+        <p class="df-pro-page-lead">Paper Trading und Prediction Markets — Simulation, kein echtes Geld, keine Anlageberatung.</p>
+      </header>
+      <div class="df-simulate-tabs" role="tablist" aria-label="Üben">
+        <button type="button" class="df-simulate-tab is-active" data-sim-tab="paper" role="tab" aria-selected="true">Paper</button>
+        <button type="button" class="df-simulate-tab" data-sim-tab="pm" role="tab" aria-selected="false">Predictions</button>
+      </div>
+    </div>
+
+    <section id="paperTradingView" class="view-section hl-paper">
+      <div class="hl-paper-shell">
+        <header class="hl-paper-topbar" aria-label="Paper-Konto">
+          <div class="hl-paper-topbar-left">
+            <span class="hl-paper-logo">Paper</span>
+            <span class="hl-paper-badge">Simulation · keine echten Trades</span>
+          </div>
+          <div class="hl-paper-topbar-metrics">
+            <div class="hl-paper-stat">
+              <span class="hl-paper-stat-label">Equity</span>
+              <span class="hl-paper-stat-value">$<span id="paperPortfolioValue">10000.00</span></span>
+            </div>
+            <div class="hl-paper-stat">
+              <span class="hl-paper-stat-label">Verfügbar</span>
+              <span class="hl-paper-stat-value">$<span id="paperCashValue">10000.00</span></span>
+            </div>
+            <div class="hl-paper-stat">
+              <span class="hl-paper-stat-label">uPNL</span>
+              <span class="hl-paper-stat-value hl-paper-pnl" id="paperUnrealizedHeader">$0.00</span>
+            </div>
+            <div class="hl-paper-stat">
+              <span class="hl-paper-stat-label">Margin &amp; Spot Buch</span>
+              <span class="hl-paper-stat-value muted">$<span id="paperInvestedValue">0.00</span></span>
+            </div>
+            <div class="hl-paper-stat">
+              <span class="hl-paper-stat-label">Realized</span>
+              <span class="hl-paper-stat-value hl-paper-pnl" id="paperRealizedPLValue">$0.00</span>
+            </div>
+            <div class="hl-paper-stat">
+              <span class="hl-paper-stat-label">ROI</span>
+              <span class="hl-paper-stat-value"><span id="paperPLValue">0.00</span>%</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="hl-paper-symbolbar">
+          <div class="hl-paper-pair-search">
+            <label class="visually-hidden" for="paperCoinInput">Perp-Paar</label>
+            <input id="paperCoinInput" class="hl-paper-input hl-paper-search" type="text" placeholder="Markt suchen (z. B. BTC)" autocomplete="off" spellcheck="false" />
+            <div id="paperCoinDropdown" class="agg-dropdown hl-paper-dd"></div>
+            <button type="button" class="hl-paper-icon-btn" id="paperFromWatchlistBtn" title="Ersten Watchlist-Coin">★</button>
+          </div>
+          <div class="hl-paper-pair-meta hl-paper-pair-meta--hl">
+            <span class="hl-paper-pair-name" id="paperHlPairTitle">BTC-PERP</span>
+            <span class="hl-paper-meta-kv"><span class="k">Mark</span><span class="hl-paper-mark-xl v" id="paperHlMarkBig">—</span></span>
+            <span class="hl-paper-meta-kv"><span class="k">Oracle</span><span class="v" id="paperHlOracle">—</span></span>
+            <span class="hl-paper-meta-kv"><span class="k">24h</span><span class="hl-paper-chg v" id="paperHlChange24">—</span></span>
+            <span class="hl-paper-meta-kv"><span class="k">Vol 24h</span><span class="v" id="paperHlVol24">—</span></span>
+            <span class="hl-paper-meta-kv"><span class="k">OI (sim.)</span><span class="v" id="paperHlOi">—</span></span>
+            <span class="hl-paper-meta-kv hl-paper-meta-funding"><span class="k">Fund / T</span><span class="v" id="paperHlFunding">—</span></span>
+          </div>
+        </div>
+
+        <div class="hl-paper-grid">
+          <main class="hl-paper-col hl-paper-chart-col">
+            <div class="hl-paper-card hl-paper-chart-card">
+              <div class="hl-paper-card-head">
+                <span id="paperChartHeaderTitle">Chart</span>
+                <span class="hl-paper-sub" id="paperChartInfo">Binance Spot · Paper-Fills</span>
+              </div>
+              <div id="paperChartContainer" class="hl-paper-chart"></div>
+              <div class="hl-paper-indicators-wrap" id="paperIndicatorsWrap">
+                <div class="hl-paper-indicators-head">
+                  <span class="hl-paper-indicators-title">Indikatoren</span>
+                  <span class="hl-paper-indicators-meta muted-small" id="paperIndicatorsMeta">Live · Chart + Kennzahlen</span>
+                  <button type="button" class="hl-paper-indicators-toggle" id="paperIndicatorsToggle" aria-expanded="true" title="Panel ein-/ausblenden">▼</button>
+                </div>
+                <div id="paperIndicatorsGrid" class="df-paper-indicators-grid" aria-live="polite"></div>
+              </div>
+            </div>
+          </main>
+
+          <aside class="hl-paper-col hl-paper-orderbook-col" aria-label="Orderbuch &amp; Trades">
+            <div class="hl-paper-card">
+              <div class="hl-paper-card-head hl-paper-ob-head">
+                <div class="hl-paper-ob-tabs" role="tablist" aria-label="Orderbuch">
+                  <button type="button" class="hl-paper-ob-tab active" data-paper-ob="book" aria-selected="true">Orderbuch</button>
+                  <button type="button" class="hl-paper-ob-tab" data-paper-ob="trades" aria-selected="false">Trades</button>
+                </div>
+                <span class="hl-paper-sub" id="paperOrderbookSource">—</span>
+              </div>
+              <div class="hl-paper-ob-pane" data-paper-ob-pane="book">
+                <div class="hl-paper-mini-tape">
+                  <div class="hl-tape-row">
+                    <span class="muted">Mark</span>
+                    <strong id="paperMarkPrice">—</strong>
+                  </div>
+                  <div class="hl-tape-row">
+                    <span class="muted">Bid</span>
+                    <strong class="hl-bid" id="paperBestBid">—</strong>
+                  </div>
+                  <div class="hl-tape-row">
+                    <span class="muted">Ask</span>
+                    <strong class="hl-ask" id="paperBestAsk">—</strong>
+                  </div>
+                </div>
+                <div class="paper-orderbook hl-paper-ob">
+                  <div class="orderbook-header">
+                    <span>Preis</span><span>Menge</span><span>Σ USD</span>
+                  </div>
+                  <div id="paperOrderbookAsks" class="orderbook-asks"></div>
+                  <div class="orderbook-spread"><span id="paperOrderbookSpread">Spread: —</span></div>
+                  <div id="paperOrderbookBids" class="orderbook-bids"></div>
+                </div>
+              </div>
+              <div class="hl-paper-ob-pane is-hidden" data-paper-ob-pane="trades" id="paperTradesWrap">
+                <div id="paperRecentTrades" class="hl-paper-trades"></div>
+              </div>
+            </div>
+          </aside>
+
+          <aside class="hl-paper-col hl-paper-trade-col" aria-label="Order platzieren">
+            <div class="hl-paper-card hl-paper-trade-panel">
+              <div class="hl-paper-card-head">
+                <span>Order</span>
+                <div class="hl-paper-margin-chips" aria-hidden="true">
+                  <span class="hl-chip">Cross</span>
+                  <span class="hl-chip" id="paperLevChip">1×</span>
+                </div>
+              </div>
+              <div class="hl-paper-strategy-block">
+                <div class="hl-paper-card-head hl-paper-strategy-head">
+                  <span>Strategie</span>
+                  <span class="hl-paper-sub" id="paperActiveStrategyLabel">Manuell</span>
+                </div>
+                <div class="hl-paper-strategy-chips" role="group" aria-label="Strategie-Vorlagen">
+                  <button type="button" class="hl-paper-strategy-btn is-active" data-paper-strategy="manual">Manuell</button>
+                  <button type="button" class="hl-paper-strategy-btn" data-paper-strategy="risk1">Risiko 1%</button>
+                  <button type="button" class="hl-paper-strategy-btn" data-paper-strategy="scalp">Scalp</button>
+                  <button type="button" class="hl-paper-strategy-btn" data-paper-strategy="swing">Swing</button>
+                  <button type="button" class="hl-paper-strategy-btn" data-paper-strategy="dca">DCA Limit</button>
+                  <button type="button" class="hl-paper-strategy-btn" data-paper-strategy="breakout">Breakout</button>
+                </div>
+                <p class="hl-paper-strategy-hint" id="paperStrategyHint">Vorlage setzt Hebel, Größe und SL/TP — Ausführung bestätigst du selbst.</p>
+              </div>
+
+              <div class="hl-paper-side-tabs">
+                <button id="paperBuySideBtn" type="button" class="hl-paper-side-tab active is-long">Long</button>
+                <button id="paperSellSideBtn" type="button" class="hl-paper-side-tab is-short">Short</button>
+              </div>
+              <label class="visually-hidden" for="paperSideSelect">Seite</label>
+              <select id="paperSideSelect" class="visually-hidden" tabindex="-1" aria-hidden="true">
+                <option value="buy">Long</option>
+                <option value="sell">Short</option>
+              </select>
+
+              <div class="hl-paper-account-hint">
+                <div class="hl-paper-account-line"><span class="muted">Verfügbar</span><strong>$<span id="paperAvailUsd">0.00</span></strong></div>
+                <div class="hl-paper-account-line"><span class="muted">Offene Position</span><strong id="paperPosHint">—</strong></div>
+              </div>
+
+              <div class="hl-paper-field-row">
+                <label class="hl-paper-label" for="paperOrderTypeSelect">Type</label>
+                <select id="paperOrderTypeSelect" class="hl-paper-select">
+                  <option value="market">Market</option>
+                  <option value="limit">Limit</option>
+                </select>
+              </div>
+              <div class="hl-paper-field-row">
+                <label class="hl-paper-label" for="paperLeverageSelect">Hebel</label>
+                <select id="paperLeverageSelect" class="hl-paper-select">
+                  <option value="1">1× · Spot</option>
+                  <option value="2">2×</option>
+                  <option value="3">3×</option>
+                  <option value="5">5×</option>
+                  <option value="10">10×</option>
+                  <option value="20">20×</option>
+                  <option value="40">40×</option>
+                </select>
+              </div>
+
+              <div class="hl-paper-field-row" id="paperLimitPriceField" style="display:none;">
+                <label class="hl-paper-label" for="paperLimitPriceInput">Limit</label>
+                <input id="paperLimitPriceInput" class="hl-paper-input" type="number" min="0.000001" step="any" placeholder="Preis" />
+              </div>
+              <div class="hl-paper-field-row">
+                <label class="hl-paper-label" for="paperAmountInput">Größe (USD)</label>
+                <input id="paperAmountInput" class="hl-paper-input" type="number" min="1" placeholder="100" />
+              </div>
+              <div class="hl-paper-field-row hl-paper-range-row">
+                <label class="hl-paper-label" for="paperSizePctRange">Größe % max</label>
+                <input type="range" id="paperSizePctRange" class="hl-paper-range" min="0" max="100" value="0" />
+              </div>
+              <div class="hl-paper-field-row">
+                <label class="hl-paper-label" for="paperQuantityInput">Größe (Coin)</label>
+                <input id="paperQuantityInput" class="hl-paper-input" type="number" min="0" step="any" placeholder="0.00" />
+              </div>
+              <div class="hl-paper-field-row">
+                <label class="hl-paper-label" for="paperStopLossInput">Stop-Loss</label>
+                <input id="paperStopLossInput" class="hl-paper-input" type="number" min="0.000001" step="any" placeholder="opt." />
+              </div>
+              <div class="hl-paper-field-row">
+                <label class="hl-paper-label" for="paperTakeProfitInput">Take-Profit</label>
+                <input id="paperTakeProfitInput" class="hl-paper-input" type="number" min="0.000001" step="any" placeholder="opt." />
+              </div>
+
+              <div class="hl-paper-submit-row">
+                <button type="button" id="paperOrderLongBtn" class="hl-paper-btn hl-paper-btn-long">Buy / Long</button>
+                <button type="button" id="paperOrderShortBtn" class="hl-paper-btn hl-paper-btn-short">Sell / Short</button>
+              </div>
+
+              <p id="paperFeeSlippageHint" class="hl-paper-hint">
+                Model: ca. <strong>0,1&nbsp;%</strong> Fee / Order. Kein echtes Hyperliquid-Matching — nur DayFlow-Paper-Logik auf Live-Preisen.
+              </p>
+              <div id="paperOrderEstimate" class="hl-paper-msg"></div>
+              <div id="paperOrderMessage" class="hl-paper-msg"></div>
+            </div>
+          </aside>
+        </div>
+
+        <div class="hl-paper-bottom">
+          <div class="hl-paper-bottom-split">
+            <div class="hl-paper-bottom-main">
+              <div class="hl-paper-tabs" role="tablist" aria-label="Paper Terminal Tabs">
+                <button type="button" class="hl-paper-tab active" data-hl-paper-tab="positions">Positionen</button>
+                <button type="button" class="hl-paper-tab" data-hl-paper-tab="balances">Salden</button>
+                <button type="button" class="hl-paper-tab" data-hl-paper-tab="orders">Offene Orders</button>
+                <button type="button" class="hl-paper-tab" data-hl-paper-tab="history">Trade-Historie</button>
+                <button type="button" class="hl-paper-tab" data-hl-paper-tab="reports">Berichte</button>
+              </div>
+              <div class="hl-paper-panel-wrap">
+                <div class="hl-paper-panel active" data-hl-paper-panel="positions" role="tabpanel">
+                  <div id="paperPositionsList" class="hl-paper-table-host"></div>
+                </div>
+                <div class="hl-paper-panel" data-hl-paper-panel="balances" role="tabpanel" hidden>
+                  <div id="paperHoldingsList" class="hl-paper-table-host"></div>
+                </div>
+                <div class="hl-paper-panel" data-hl-paper-panel="orders" role="tabpanel" hidden>
+                  <div id="paperOpenOrders" class="hl-paper-orders"></div>
+                </div>
+                <div class="hl-paper-panel" data-hl-paper-panel="history" role="tabpanel" hidden>
+                  <div class="hl-paper-history-wrap">
+                    <div class="hl-paper-journal-wrap">
+                      <h4>Equity-Kurve (Paper)</h4>
+                      <canvas id="paperEquityChart" class="hl-paper-equity-chart" width="640" height="120" aria-label="Paper Equity Verlauf"></canvas>
+                    </div>
+                    <div class="paper-history-filters" role="group" aria-label="Historie filtern">
+                      <select id="paperHistoryFilterType" title="Trade-Typ">
+                        <option value="all">Alle Typen</option>
+                        <option value="market">Market</option>
+                        <option value="limit">Limit</option>
+                        <option value="close">Schließungen</option>
+                      </select>
+                      <select id="paperHistoryFilterSide" title="Richtung">
+                        <option value="all">Long &amp; Short</option>
+                        <option value="buy">Käufe / Long</option>
+                        <option value="sell">Verkäufe / Short</option>
+                      </select>
+                    </div>
+                    <table class="hl-paper-table markets-table" id="paperHistoryTable">
+                      <thead>
+                        <tr>
+                          <th>Zeit</th>
+                          <th>Coin</th>
+                          <th>Typ</th>
+                          <th>Preis</th>
+                          <th>Menge</th>
+                          <th>USD</th>
+                          <th>Notiz</th>
+                        </tr>
+                      </thead>
+                      <tbody></tbody>
+                    </table>
+                    <div id="paperNoHistory" class="hl-paper-empty">Noch keine Trades vorhanden.</div>
+                  </div>
+                </div>
+                <div class="hl-paper-panel" data-hl-paper-panel="reports" role="tabpanel" hidden>
+                  <div class="hl-paper-reports-grid">
+                    <div class="hl-paper-report-card">
+                      <div class="paper-pnl-chart-wrap">
+                        <h4>PnL-Verlauf (Paper)</h4>
+                        <canvas id="paperPnlChart" width="400" height="120" role="img" aria-label="Kumulierter Paper-PnL"></canvas>
+                      </div>
+                      <h3 class="hl-paper-h3">Steuer-CSV (Paper)</h3>
+                      <p class="hl-paper-muted">Export nur zur Dokumentation.</p>
+                      <button type="button" class="hl-paper-btn-secondary" id="paperTaxExportBtn">CSV herunterladen</button>
+                      <pre id="paperTaxPreview" class="hl-paper-pre"></pre>
+                    </div>
+                    <div class="hl-paper-report-card">
+                      <h3 class="hl-paper-h3">Leaderboard</h3>
+                      <p class="hl-paper-muted">Lokal im Browser.</p>
+                      <button type="button" class="hl-paper-btn-secondary" id="paperLeaderboardSaveBtn">Score eintragen</button>
+                      <div class="hl-paper-table-scroll">
+                        <table class="hl-paper-table markets-table" id="paperLeaderboardTable">
+                          <thead><tr><th>Zeit</th><th>User</th><th>Equity USD</th></tr></thead>
+                          <tbody></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <aside class="hl-paper-account-rail" aria-label="Account Übersicht">
+              <div class="hl-paper-rail-title">Unified (Paper)</div>
+              <div class="hl-paper-rail-bar-wrap">
+                <div id="paperRailHealthBar" class="hl-paper-rail-bar" style="width:72%;"></div>
+              </div>
+              <div class="hl-paper-rail-row"><span>Portfolio</span><strong>$<span id="paperRailEquity">—</span></strong></div>
+              <div class="hl-paper-rail-row"><span>uPNL</span><strong id="paperRailUpnl" class="hl-paper-pnl">—</strong></div>
+              <div class="hl-paper-rail-row"><span>Maint. (sim.)</span><strong>$<span id="paperRailMaint">—</span></strong></div>
+              <div class="hl-paper-rail-row"><span>Hebel Ø</span><strong><span id="paperRailLev">—</span></strong></div>
+            </aside>
+          </div>
+        </div>
+
+        <section class="hl-paper-news-block" aria-labelledby="paperNewsTitle">
+          <div class="hl-paper-news-head">
+            <h2 id="paperNewsTitle" class="hl-paper-news-title">Markt- &amp; Trading-News</h2>
+            <button type="button" id="paperNewsRefreshBtn" class="hl-paper-btn-secondary">Aktualisieren</button>
+          </div>
+          <p class="hl-paper-news-lead" id="paperNewsSub">Schlagzeilen zu Trades, Liquidationen und Marktbewegungen — gefiltert für dein Paper-Symbol.</p>
+          <div id="paperTradingNewsList" class="hl-paper-news-list" role="feed"></div>
+          <p class="hl-paper-news-foot" id="paperTradingNewsFoot"></p>
+        </section>
+
+      </div>
+    </section>
+
+    <section id="walletDetailView" class="view-section">
+      <button id="backToWallet" class="back-button">← Zurück zur Wallet</button>
+
+      <div class="detail-hero">
+        <div class="detail-hero-left">
+          <div class="detail-coin-identity">
+            <img id="walletDetailIcon" src="" alt="" class="coin-icon" />
+            <div>
+              <div class="detail-name" id="walletDetailName">-</div>
+              <div class="detail-symbol" id="walletDetailSymbol">-</div>
+            </div>
+            <div class="detail-rank-badge" id="walletDetailRankBadge">#-</div>
+          </div>
+          <div class="detail-price-row">
+            <span class="detail-price" id="walletDetailPrice">-</span>
+            <span class="detail-change-badge" id="walletDetailChange">-</span>
+          </div>
+          <div class="detail-hl-row">
+            <span class="muted range-label">24h Tief: <span id="walletDetailLow24">-</span></span>
+            <div class="detail-range-bar"><div class="detail-range-fill" id="walletDetailRangeFill"></div></div>
+            <span class="muted range-label">24h Hoch: <span id="walletDetailHigh24">-</span></span>
+          </div>
+        </div>
+        <div class="detail-stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Dein Besitz</div>
+            <div class="stat-value" id="walletDetailHolding">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Wert in USD</div>
+            <div class="stat-value" id="walletDetailValue">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label" id="walletDetailMcapLabel">Marktkapitalisierung</div>
+            <div class="stat-value" id="walletDetailMcap">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label" id="walletDetailVolumeLabel">24h Volumen</div>
+            <div class="stat-value" id="walletDetailVolume">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">24h Veränderung</div>
+            <div class="stat-value" id="walletDetailChange24Stat">-</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">7d Veränderung</div>
+            <div class="stat-value" id="walletDetailChange7d">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-layout">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span id="walletChartHeaderTitle">Preis‑Chart (1‑Min Candles, Binance)</span>
+            <span class="muted" id="walletChartInfo">Live‑Updates via WebSocket</span>
+          </div>
+          <div id="walletChartContainer" class="chart-fixed-md"></div>
+        </div>
+
+        <div class="detail-sidebar">
+          <div class="timeframe-buttons" id="walletTimeframeButtons">
+            <button class="timeframe-btn active" data-timeframe="1">1m</button>
+            <button class="timeframe-btn" data-timeframe="5">5m</button>
+            <button class="timeframe-btn" data-timeframe="15">15m</button>
+            <button class="timeframe-btn" data-timeframe="1H">1h</button>
+            <button class="timeframe-btn" data-timeframe="4H">4h</button>
+            <button class="timeframe-btn" data-timeframe="1D">1d</button>
+            <button class="timeframe-btn" data-timeframe="1W">1w</button>
+          </div>
+
+          <div class="detail-about" id="walletDetailAbout">
+            <h3>Über <span id="walletDetailAboutName">-</span></h3>
+            <p id="walletDetailDescription">-</p>
+            <div class="detail-links">
+              <a id="walletDetailWebsite" href="#" target="_blank" rel="noopener noreferrer nofollow" class="detail-link">🌐 Website</a>
+              <a id="walletDetailExplorer" href="#" target="_blank" rel="noopener noreferrer nofollow" class="detail-link">🔍 Explorer</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="smartHubView" class="view-section">
+      <div id="smartOnboarding" class="onboarding-panel">
+        <div class="smart-section-title">
+          <span>🚀 Dein Setup in 4 Schritten</span>
+          <button id="dismissSmartOnboarding" class="auth-button" type="button">Erledigt</button>
+        </div>
+        <div class="onboarding-steps">
+          <div class="onboarding-step"><strong>1. Watchlist bauen</strong>Markiere Coins mit dem Stern, damit die App sie überwacht.</div>
+          <div class="onboarding-step"><strong>2. Wallet verbinden</strong>Aktiviere Wallet Health und AI Portfolio Coach.</div>
+          <div class="onboarding-step"><strong>3. Alerts setzen</strong>Preisalarme im Coin-Detail anlegen.</div>
+          <div class="onboarding-step"><strong>4. Paper Trading</strong>Teste Strategien risikofrei und lass sie bewerten.</div>
+        </div>
+      </div>
+
+      <div class="smart-simple-header">
+        <div>
+          <div class="smart-kicker">● Markt &amp; Portfolio</div>
+          <h1 class="smart-title">Smart Hub – kompakter Überblick</h1>
+          <p class="smart-lead">
+            Wichtigste Kennzahlen zu Markt, Wallet und Watchlist. Alles auf einen Blick, ohne zusätzliche Experimentier-Bereiche.
+          </p>
+        </div>
+        <div class="smart-simple-actions">
+          <button id="smartAskAiBtn" class="auth-button primary" type="button">AI fragen</button>
+          <button id="smartConnectWalletBtn" class="auth-button" type="button">Wallet verbinden</button>
+        </div>
+      </div>
+
+      <div class="smart-summary-grid" id="smartSummaryCards">
+        <div class="smart-summary-card">
+          <div class="smart-summary-label">📊 Markt</div>
+          <div class="smart-mini-chart" id="smartSparkMarket" aria-hidden="true"></div>
+          <div class="smart-summary-value" id="smartSummaryMarket">-</div>
+          <div class="smart-summary-note" id="smartSummaryMarketNote">Lade...</div>
+        </div>
+        <div class="smart-summary-card">
+          <div class="smart-summary-label">💼 Wallet</div>
+          <div class="smart-mini-chart" id="smartSparkWallet" aria-hidden="true"></div>
+          <div class="smart-summary-value" id="smartSummaryWallet">-</div>
+          <div class="smart-summary-note" id="smartSummaryWalletNote">Nicht verbunden</div>
+        </div>
+        <div class="smart-summary-card">
+          <div class="smart-summary-label">⭐ Watchlist</div>
+          <div class="smart-mini-chart" id="smartSparkWatch" aria-hidden="true"></div>
+          <div class="smart-summary-value" id="smartSummaryWatchlist">-</div>
+          <div class="smart-summary-note" id="smartSummaryWatchlistNote">Noch leer</div>
+        </div>
+        <div class="smart-summary-card">
+          <div class="smart-summary-label">⚠ Risiko</div>
+          <div class="smart-mini-chart" id="smartSparkRisk" aria-hidden="true"></div>
+          <div class="smart-summary-value" id="smartSummaryRisk">-</div>
+          <div class="smart-summary-note" id="smartSummaryRiskNote">Wird berechnet</div>
+        </div>
+      </div>
+
+      <div class="smart-main-layout">
+        <div class="smart-panel smart-priority compact">
+          <h2 class="smart-section-title">✅ Was jetzt wichtig ist</h2>
+          <div id="smartAlertsList" class="smart-list"></div>
+        </div>
+        <div class="smart-panel compact">
+          <h2 class="smart-section-title">💼 Wallet & Watchlist</h2>
+          <div class="smart-collapse-note">Hier siehst du nur die persönliche Lage. Verbinde Wallet und Watchlist für bessere Ergebnisse.</div>
+          <div id="smartPortfolioCoach" class="smart-list"></div>
+          <div class="settings-divider tight"></div>
+          <div id="smartWatchlistIntel" class="smart-list"></div>
+        </div>
+      </div>
+
+      <div class="smart-panel compact mb-20">
+        <h2 class="smart-section-title">📊 Kurzüberblick</h2>
+        <div id="smartCoinInsight" class="smart-list"></div>
+      </div>
+
+      <div class="smart-card mt-20">
+        <div class="smart-score-ring" id="smartMarketScoreRing" style="--smart-score: 62%;">
+          <span id="smartMarketScore">62</span>
+        </div>
+        <h2 class="smart-section-title">Market Mood</h2>
+        <p id="smartMarketMoodText" class="smart-lead">Lade Marktstimmung...</p>
+        <div class="sentiment-meter"><div id="smartSentimentPin" class="sentiment-pin"></div></div>
+      </div>
+    </section>
+
+    <section id="dexRadarView" class="df-dex-radar" aria-label="Neue DEX-Pools" style="display:none">
+      <div class="df-dex-radar-hero">
+        <h1>Pools</h1>
+        <p>Neue Pools mit Preis, Liquidität und <strong>Honeypot-Scanner</strong> im Pool-Detail (GoPlus · RugCheck).</p>
+      </div>
+      <div class="df-dex-search-wrap">
+        <label class="df-dex-search-label" for="dexRadarSearch">Suche</label>
+        <input
+          id="dexRadarSearch"
+          class="df-dex-search-input"
+          type="search"
+          placeholder="Name, Symbol, 0x-Adresse, Pool-ID oder DexScreener-Link…"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="button" class="df-dex-pill" id="dexRadarSearchBtn">Suchen</button>
+        <button type="button" class="df-dex-pill df-dex-search-clear" id="dexRadarSearchClear" hidden title="Suche löschen">×</button>
+      </div>
+      <div class="df-dex-radar-toolbar" role="toolbar" aria-label="Filter">
+        <button type="button" class="df-dex-pill is-active" data-dex-chain="all">Alle Chains</button>
+        <button type="button" class="df-dex-pill" data-dex-chain="eth">ETH</button>
+        <button type="button" class="df-dex-pill" data-dex-chain="base">Base</button>
+        <button type="button" class="df-dex-pill" data-dex-chain="bsc">BSC</button>
+        <button type="button" class="df-dex-pill" data-dex-chain="arbitrum">Arb</button>
+        <button type="button" class="df-dex-pill" data-dex-chain="solana">SOL</button>
+        <span style="flex:1"></span>
+        <button type="button" class="df-dex-pill is-active" data-dex-sort="created">Neueste</button>
+        <button type="button" class="df-dex-pill" data-dex-sort="liq">Liquidität</button>
+        <button type="button" class="df-dex-pill" data-dex-sort="vol">Volumen</button>
+        <button type="button" class="df-dex-pill" data-dex-sort="change">24h %</button>
+        <button type="button" class="df-dex-pill" id="dexRadarRefreshBtn" title="Liste neu laden">↻</button>
+      </div>
+      <div class="df-dex-radar-table-wrap">
+        <table class="df-dex-radar-table" id="dexRadarTable">
+          <thead>
+            <tr>
+              <th>Paar</th>
+              <th>Chain</th>
+              <th>DEX</th>
+              <th>Preis</th>
+              <th>24h</th>
+              <th>Liquidität</th>
+              <th>Vol. 24h</th>
+              <th>FDV</th>
+              <th>Txns</th>
+              <th>Alter</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dexRadarTableBody"></tbody>
+        </table>
+      </div>
+      <p class="df-dex-radar-disclaimer">
+        Daten: öffentliche APIs (GeckoTerminal, DexScreener). Preise = gewichteter Median mehrerer Quellen; keine Gewähr.
+        Listing-Verzögerung möglich. Scam-/Honeypot-Risiko — prüfe Verträge selbst. Keine Anlageberatung.
+      </p>
+    </section>
+
+    <section id="airdropFinderView" class="df-airdrop" aria-label="Airdrop Finder" style="display:none">
+      <div class="df-airdrop-hero">
+        <h1>Airdrop Finder</h1>
+        <p>Welche Airdrops <strong>möglich</strong> sein könnten, welche <strong>Chains</strong> und <strong>Aktionen</strong> — kuratiert, ohne Garantie.</p>
+      </div>
+      <div class="df-airdrop-banner" role="note">
+        <strong>Hinweis:</strong> Keine Anlageberatung. Kein Versprechen auf Token-Airdrops. Nur öffentliche Docs verlinkt — keine Referral-Links.
+        Scams vermeiden: niemals Seed Phrase eingeben. Eigene Recherche (DYOR) Pflicht.
+      </div>
+      <div id="dfAirdropWalletBar" class="df-airdrop-wallet-bar" aria-live="polite"></div>
+      <div class="df-airdrop-toolbar" role="toolbar" aria-label="Filter Airdrops">
+        <input id="dfAirdropSearch" class="df-airdrop-search" type="search" placeholder="Suche Name, Chain, Aktion…" autocomplete="off" />
+        <span style="flex:1;min-width:0.5rem"></span>
+        <button type="button" class="df-airdrop-pill is-active" data-ad-filter-status="all">Alle Status</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-status="active">Aktiv</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-status="rumored">Gerücht</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-status="ended">Beendet</button>
+      </div>
+      <div class="df-airdrop-toolbar" role="toolbar" aria-label="Filter Chains">
+        <button type="button" class="df-airdrop-pill is-active" data-ad-filter-chain="all">Alle Chains</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-chain="eth">ETH</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-chain="base">Base</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-chain="arbitrum">Arb</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-chain="linea">Linea</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-chain="solana">SOL</button>
+      </div>
+      <div class="df-airdrop-toolbar" role="toolbar" aria-label="Filter Schwierigkeit">
+        <button type="button" class="df-airdrop-pill is-active" data-ad-filter-diff="all">Alle</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-diff="easy">Einfach</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-diff="medium">Mittel</button>
+        <button type="button" class="df-airdrop-pill" data-ad-filter-diff="hard">Anspruchsvoll</button>
+        <button type="button" class="df-airdrop-pill" id="dfAirdropResetDismissed" title="Ausgeblendete wieder anzeigen">Ausgeblendete zurücksetzen</button>
+      </div>
+      <div id="dfAirdropGrid" class="df-airdrop-grid"></div>
+      <p id="dfAirdropEmpty" class="df-airdrop-empty" hidden>Keine Einträge.</p>
+      <p class="df-airdrop-disclaimer">
+        Datenstand: kuratierter Katalog (<code>df-airdrop-catalog.json</code>). Wallet-Abgleich nutzt Multichain-Portfolio-Scan in DayFlow.
+        „Möglich“ bedeutet nur: Chains/Aktionen wirken erfüllt — kein Anspruch auf Allocation.
+      </p>
+    </section>
+
+    <section id="whaleTrackerView" class="df-whale-tracker" aria-label="Whale Tracker" style="display:none">
+      <div class="df-whale-hero">
+        <h1>Whale Tracker</h1>
+        <p>Große Wallet-Bewegungen, DEX-Buys und Sells — Live-Daten mit Sample-Fallback. Keine Anlageberatung.</p>
+      </div>
+      <div class="df-whale-toolbar" role="tablist" aria-label="Whale-Kategorien">
+        <button type="button" class="df-whale-pill is-active" data-whale-tab="all" aria-selected="true">Alle</button>
+        <button type="button" class="df-whale-pill" data-whale-tab="movements" aria-selected="false">Große Bewegungen</button>
+        <button type="button" class="df-whale-pill" data-whale-tab="buys" aria-selected="false">Whale Buys</button>
+        <button type="button" class="df-whale-pill" data-whale-tab="sells" aria-selected="false">Whale Sells</button>
+      </div>
+      <div class="df-whale-toolbar" role="toolbar" aria-label="Chain-Filter">
+        <button type="button" class="df-whale-pill is-active" data-whale-chain="all">Alle Chains</button>
+        <button type="button" class="df-whale-pill" data-whale-chain="eth">ETH</button>
+        <button type="button" class="df-whale-pill" data-whale-chain="base">Base</button>
+        <button type="button" class="df-whale-pill" data-whale-chain="bsc">BSC</button>
+        <button type="button" class="df-whale-pill" data-whale-chain="arbitrum">Arb</button>
+        <button type="button" class="df-whale-pill" data-whale-chain="solana">SOL</button>
+        <span style="flex:1"></span>
+        <button type="button" class="df-whale-pill" id="whaleTrackerRefreshBtn" title="Jetzt aktualisieren">↻</button>
+      </div>
+      <div class="df-whale-filters">
+        <label for="whaleMinUsdFilter">Min. USD</label>
+        <input type="number" id="whaleMinUsdFilter" min="1000" step="1000" value="50000" />
+        <label for="whaleSideFilter">Richtung</label>
+        <select id="whaleSideFilter">
+          <option value="all">Alle</option>
+          <option value="buy">Nur Buys</option>
+          <option value="sell">Nur Sells</option>
+        </select>
+        <label for="whaleTokenFilter">Token</label>
+        <input type="search" id="whaleTokenFilter" placeholder="Symbol filtern…" autocomplete="off" />
+      </div>
+      <p class="df-whale-status" id="whaleTrackerStatus" role="status">Bereit.</p>
+      <div class="df-whale-table-wrap">
+        <table class="df-whale-table" id="whaleTrackerTable">
+          <thead>
+            <tr>
+              <th>Typ</th>
+              <th>Quelle</th>
+              <th>Chain</th>
+              <th>Token</th>
+              <th>USD</th>
+              <th>DEX</th>
+              <th>Tx / Pool</th>
+              <th>Zeit</th>
+            </tr>
+          </thead>
+          <tbody id="whaleTrackerTableBody"></tbody>
+        </table>
+      </div>
+      <div class="df-whale-alerts" id="whaleTrackerAlertsPanel" aria-label="Whale Alerts"></div>
+      <p class="df-whale-disclaimer">
+        Daten: GeckoTerminal (Trades), DexScreener (Volumen-Aggregate), optional Whale Alert API.
+        <strong>Sample</strong>-Zeilen erscheinen, wenn Live-APIs wenig liefern. Verzögerungen und Fehlklassifikationen möglich — keine Anlageberatung.
+      </p>
+    </section>
+
+    <section id="homeView">
+      <div class="home-with-rails home-with-rails--news" id="homeWithRails">
+        <div class="home-with-rails-main">
+          <p id="dfGuestHint" class="df-guest-hint is-hidden" role="note"></p>
+          <h1 id="homeTitle">Heutige Kryptowährungspreise nach Marktkapitalisierung</h1>
+          <div class="subtitle" id="marketSummary">
+            Live aus mehreren Quellen (CoinGecko, Binance, CryptoCompare …) — keine Anlageberatung.
+          </div>
+          <p id="marketDataTimestamp" class="muted-small df-source-line" aria-live="polite"></p>
+
+          <div class="cmc-hero-grid" id="homeHeroGrid">
+            <article class="cmc-hero-card cmc-hero-card--mcap">
+              <header class="cmc-hero-head">
+                <span class="cmc-hero-label">Market Cap</span>
+                <span class="cmc-hero-change" id="heroMcapChange">+0.00%</span>
+              </header>
+              <div class="cmc-hero-value" id="heroMarketCapValue">—</div>
+              <div class="cmc-hero-note" id="heroMarketCapNote">Marktkapitalisierung Top 100</div>
+              <svg id="heroMcapSpark" class="cmc-hero-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </article>
+
+            <article class="cmc-hero-card cmc-hero-card--vol">
+              <header class="cmc-hero-head">
+                <span class="cmc-hero-label">24h Volumen</span>
+                <span class="cmc-hero-change" id="heroVolChange">—</span>
+              </header>
+              <div class="cmc-hero-value" id="heroVolValue">—</div>
+              <div class="cmc-hero-note" id="heroVolNote">Summe aus geladenen Assets</div>
+              <svg id="heroVolSpark" class="cmc-hero-spark" viewBox="0 0 120 32" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </article>
+
+            <article class="cmc-hero-card cmc-hero-card--fng">
+              <header class="cmc-hero-head">
+                <span class="cmc-hero-label">Fear &amp; Greed</span>
+                <span class="cmc-hero-change" id="heroFngLabel">Neutral</span>
+              </header>
+              <div class="fng-gauge" aria-hidden="true">
+                <div class="fng-gauge-arc"></div>
+                <div class="fng-gauge-needle" id="heroFngNeedle" style="transform:rotate(-90deg)"></div>
+                <div class="fng-gauge-value" id="heroFngValue">—</div>
+              </div>
+              <div class="cmc-hero-note" id="heroFngNote">Index 0–100</div>
+            </article>
+
+            <article class="cmc-hero-card cmc-hero-card--altseason">
+              <header class="cmc-hero-head">
+                <span class="cmc-hero-label">Altcoin Season</span>
+                <span class="cmc-hero-change" id="heroAltLabel">—</span>
+              </header>
+              <div class="cmc-hero-value" id="heroAltValue">—<span class="cmc-hero-sub">/100</span></div>
+              <div class="alt-season-bar" aria-hidden="true">
+                <span class="alt-season-bar-fill" id="heroAltFill" style="left:50%"></span>
+                <span class="alt-season-bar-mark"></span>
+                <span class="alt-season-bar-edge alt-season-bar-edge--left">Bitcoin</span>
+                <span class="alt-season-bar-edge alt-season-bar-edge--right">Altcoin</span>
+              </div>
+            </article>
+          </div>
+
+          <section id="dfMeinTag" class="df-mein-tag" aria-label="Mein Tag Übersicht"></section>
+
+          <div class="df-trending-tags" id="dayflowTrendingTags" aria-label="Aktuelle Markt-Themen">
+            <button type="button" class="df-trending-tag df-trending-tag--hot" data-df-action="swap:open">Tauschen · 1inch</button>
+            <span class="df-trending-tag" data-trending-key="news" id="trendingNewsTag">📰 News laden…</span>
+            <span class="df-trending-tag" data-trending-key="gainer" id="trendingGainerTag">🚀 Top Gainer …</span>
+            <span class="df-trending-tag" data-trending-key="loser" id="trendingLoserTag">📉 Top Loser …</span>
+            <span class="df-trending-tag" data-trending-key="watch" id="trendingWatchTag">⭐ Watchlist 0</span>
+          </div>
+
+          <span id="heroTopGainerValue" hidden></span>
+          <span id="heroTopGainerNote" hidden></span>
+          <span id="heroTopLoserValue" hidden></span>
+          <span id="heroTopLoserNote" hidden></span>
+
+          <div class="table-scroll-wrap">
+          <div class="table-loading top-skeleton-mode">
+            <table id="coinsMarketTable" class="cmc-market-table">
+              <thead>
+                <tr>
+                  <th class="sortable-th" data-sort-key="market_cap_rank" scope="col">#</th>
+                  <th class="sortable-th" data-sort-key="name" id="thName" scope="col">Name</th>
+                  <th class="sortable-th" data-sort-key="current_price" id="thPrice" scope="col">Preis</th>
+                  <th scope="col">Typ</th>
+                  <th class="sortable-th" data-sort-key="price_change_percentage_24h" scope="col">24h %</th>
+                  <th class="sortable-th" data-sort-key="price_change_percentage_7d_in_currency" scope="col">7d %</th>
+                  <th class="sortable-th" data-sort-key="market_cap" id="thMarketCap" scope="col">Marktkap.</th>
+                  <th class="sortable-th" data-sort-key="total_volume" id="thVolume" scope="col">Volumen (24h)</th>
+                  <th class="sortable-th" data-sort-key="circulating_supply" id="thSupply" scope="col">Umlaufende Menge</th>
+                  <th scope="col" class="th-sparkline" title="Letzte 7 Tage (Sparkline)">7 Tage</th>
+                </tr>
+              </thead>
+              <tbody id="coinsTableBody">
+                <!-- Skeleton Loaders -->
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+                <tr class="skeleton-row"></tr>
+              </tbody>
+            </table>
+            <div id="tableLoader" class="loading-overlay" style="display:none;" aria-hidden="true">
+              <div class="spinner"></div>
+              <div class="loading-text" id="loadingText">Lade Kryptowährungen...</div>
+            </div>
+          </div>
+          </div>
+
+          <!-- Mobile List View -->
+          <div class="mobile-list" id="mobileList">
+            <!-- Mobile cards will be populated by JavaScript -->
+          </div>
+
+          <div class="footer-note" id="footerNote">
+            Daten werden von CoinGecko & Binance geladen. Werte können leicht von CoinMarketCap abweichen.
+            <span class="footer-legal-links"> · <a href="#" id="footerImprintPlaceholder">Impressum (Platzhalter)</a> · <a href="#" id="footerPrivacyPlaceholder">Datenschutz (Platzhalter)</a></span>
+          </div>
+        </div>
+
+        <aside class="home-news-rail" id="homeNewsRail" aria-label="Krypto-News">
+          <header class="home-news-rail-head">
+            <div>
+              <h2 class="home-news-rail-title" id="homeNewsRailTitle">📰 Krypto-News</h2>
+              <p class="home-news-rail-sub" id="homeNewsRailSub">Mehrere Quellen · mit Bildern</p>
+            </div>
+            <button type="button" class="auth-button secondary home-news-refresh-btn" id="homeNewsRefreshBtn" title="News aktualisieren">↻</button>
+          </header>
+          <div class="news-toolbar news-toolbar--rail" id="homeNewsToolbar">
+            <button class="pill active" type="button" data-news-filter="all">Alle</button>
+            <button class="pill" type="button" data-news-filter="bitcoin">BTC</button>
+            <button class="pill" type="button" data-news-filter="ethereum">ETH</button>
+            <button class="pill" type="button" data-news-filter="defi">DeFi</button>
+            <button class="pill" type="button" data-news-filter="regulation">Reg.</button>
+            <label class="news-breaking-label news-breaking-label--rail">
+              <input type="checkbox" id="newsBreakingOnly" />
+              <span id="newsBreakingLabel">Breaking</span>
+            </label>
+          </div>
+          <div id="newsIntelPanel" class="df-news-intel-panel" aria-live="polite"></div>
+          <div id="newsContainer" class="news-container news-container--rail">
+            <div class="news-layout news-layout--loading">
+              <div class="news-skeleton news-skeleton--featured"></div>
+              <div class="news-grid news-grid--skeleton">
+                <div class="news-skeleton news-skeleton--compact"></div>
+                <div class="news-skeleton news-skeleton--compact"></div>
+                <div class="news-skeleton news-skeleton--compact"></div>
+              </div>
+            </div>
+          </div>
+          <div id="newsLastUpdate" class="muted-small home-news-last-update">—</div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="exchangesView" class="view-section exchanges-cmc-page" style="display:none;">
+      <div class="exchanges-cmc-head">
+        <div>
+          <h1 id="exchangesPageTitle" class="exchanges-cmc-h1">Top-Krypto-Börsen</h1>
+          <p class="muted exchanges-cmc-lead" id="exchangesPageSub">Sortiert nach CoinGecko · 24h Volumen (BTC). Keine Anlageberatung.</p>
+        </div>
+        <button type="button" class="auth-button secondary" id="exchangesRefreshBtn">↻ <span data-i18n-mega="exchangesRefresh">Aktualisieren</span></button>
+      </div>
+      <div class="table-scroll-wrap">
+        <table class="cmc-market-table exchanges-cmc-table" id="exchangesTable">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col" data-i18n-mega="megaExName">Börse</th>
+              <th scope="col" data-i18n-mega="exchangesScore">Score</th>
+              <th scope="col" data-i18n-mega="exchangesVolBtc">Volumen 24h (BTC)</th>
+              <th scope="col" data-i18n-mega="exchangesYear">Seit</th>
+            </tr>
+          </thead>
+          <tbody id="exchangesTableBody"></tbody>
+        </table>
+        <p class="muted-small" id="exchangesFootnote">Quelle: api.coingecko.com/api/v3/exchanges</p>
+      </div>
+    </section>
+
+    <section id="predictionMarketsView" class="view-section pm-view pm-cmc">
+      <div class="pm-head pm-cmc-head">
+        <div>
+          <h1 class="pm-title">📡 Prediction Markets</h1>
+          <p class="pm-sub">Live von <strong>Polymarket</strong> und <strong>Kalshi</strong> (öffentliche APIs) — Kennzahlen, Themen und Kartenraster. Keine Anlageberatung, keine Wettempfehlung.</p>
+        </div>
+        <div class="pm-cmc-head-actions">
+          <button type="button" class="pm-sidebar-toggle" id="pmSidebarToggle" aria-controls="pmSidebar" aria-expanded="false">☰ Themen</button>
+          <button type="button" class="pm-refresh" id="pmRefreshBtn">↻ Aktualisieren</button>
+        </div>
+      </div>
+
+      <div class="pm-cmc-pills" id="pmFilterPills" role="tablist" aria-label="Schnellfilter">
+        <button type="button" class="pm-pill active" data-pm-cat="all" role="tab" aria-selected="true">Alle</button>
+        <button type="button" class="pm-pill" data-pm-cat="trending" role="tab" aria-selected="false">Trending</button>
+        <button type="button" class="pm-pill" data-pm-cat="new" role="tab" aria-selected="false">Neu</button>
+        <button type="button" class="pm-pill" data-pm-cat="politics" role="tab" aria-selected="false">Politik</button>
+        <button type="button" class="pm-pill" data-pm-cat="sports" role="tab" aria-selected="false">Sport</button>
+        <button type="button" class="pm-pill" data-pm-cat="crypto" role="tab" aria-selected="false">Krypto</button>
+        <button type="button" class="pm-pill" data-pm-cat="tech" role="tab" aria-selected="false">Tech &amp; KI</button>
+        <button type="button" class="pm-pill" data-pm-cat="watchlist" role="tab" aria-selected="false" title="Lokal in diesem Browser">★ Watchlist</button>
+      </div>
+
+      <div class="pm-toolbar pm-cmc-toolbar">
+        <input type="search" id="pmSearchInput" class="pm-search pm-cmc-search" placeholder="Events durchsuchen…" autocomplete="off" />
+        <label class="visually-hidden" for="pmSortSelect">Sortierung</label>
+        <select id="pmSortSelect" class="pm-sort" title="Sortierung">
+          <option value="vol24">24h Volumen (hoch)</option>
+          <option value="volTotal">Gesamt-Volumen</option>
+          <option value="liquidity">Liquidität</option>
+          <option value="competitive">Markt-Aktivität</option>
+          <option value="yesHigh">Höchste „Ja“-Wahrscheinlichkeit</option>
+          <option value="change24">24h Kursänderung</option>
+          <option value="endSoon">Ende: bald zuerst</option>
+          <option value="endLate">Ende: spät zuerst</option>
+        </select>
+        <span class="pm-platform-chip">Polymarket · Kalshi</span>
+        <span class="pm-badge" id="pmStatusBadge">Lade…</span>
+      </div>
+
+      <div class="pm-stats pm-cmc-stats" id="pmStatsRow" aria-live="polite">
+        <div class="pm-stat"><span class="pm-stat-label">Aktive Märkte</span><span class="pm-stat-val pm-stat-accent" id="pmStatCount">—</span></div>
+        <div class="pm-stat"><span class="pm-stat-label">Σ Vol. 24h</span><span class="pm-stat-val" id="pmStatVol24">—</span></div>
+        <div class="pm-stat"><span class="pm-stat-label">Σ Liquidität</span><span class="pm-stat-val" id="pmStatLiq">—</span></div>
+        <div class="pm-stat"><span class="pm-stat-label">Σ Vol. gesamt</span><span class="pm-stat-val" id="pmStatVolTotal">—</span></div>
+        <div class="pm-stat"><span class="pm-stat-label">Ø Aktivität</span><span class="pm-stat-val" id="pmStatComp">—</span></div>
+      </div>
+
+      <div class="pm-cmc-layout">
+        <aside class="pm-sidebar" id="pmSidebar" aria-label="Themenfilter">
+          <div class="pm-side-head">Themen</div>
+          <nav class="pm-side-nav" id="pmSidebarNav">
+            <button type="button" class="pm-side-item active" data-pm-cat="all"><span class="pm-side-lbl">Alle Märkte</span><span class="pm-side-count" data-pm-count="all">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="trending"><span class="pm-side-lbl">Trending</span><span class="pm-side-count" data-pm-count="trending">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="new"><span class="pm-side-lbl">Neu</span><span class="pm-side-count" data-pm-count="new">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="watchlist"><span class="pm-side-lbl">Watchlist</span><span class="pm-side-count" data-pm-count="watchlist">—</span></button>
+            <div class="pm-side-divider" role="presentation"></div>
+            <button type="button" class="pm-side-item" data-pm-cat="politics"><span class="pm-side-lbl">Politik</span><span class="pm-side-count" data-pm-count="politics">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="sports"><span class="pm-side-lbl">Sport</span><span class="pm-side-count" data-pm-count="sports">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="crypto"><span class="pm-side-lbl">Krypto</span><span class="pm-side-count" data-pm-count="crypto">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="tech"><span class="pm-side-lbl">Tech &amp; KI</span><span class="pm-side-count" data-pm-count="tech">—</span></button>
+            <button type="button" class="pm-side-item" data-pm-cat="other"><span class="pm-side-lbl">Sonstiges</span><span class="pm-side-count" data-pm-count="other">—</span></button>
+          </nav>
+        </aside>
+        <button type="button" class="pm-sidebar-backdrop" id="pmSidebarBackdrop" hidden aria-label="Seitenleiste schließen"></button>
+
+        <div class="pm-main">
+          <div id="pmDetailPanel" class="pm-detail-panel pm-cmc-detail" hidden></div>
+          <div id="pmGrid" class="pm-grid" aria-live="polite"></div>
+          <div class="pm-grid-footer">
+            <button type="button" class="pm-load-more hidden" id="pmLoadMoreBtn">Mehr Märkte laden</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="pm-foot">DayFlow ist nicht mit Polymarket, Kalshi oder CoinMarketCap verbunden. Daten: öffentliche APIs. Links öffnen die jeweilige Plattform in einem neuen Tab.</p>
+    </section>
+
+    <section id="detailView" class="detail-cmc-page">
+      <button id="backToHome" class="back-button detail-cmc-back">← Zurück</button>
+      <div id="detailResolveBanner" class="detail-resolve-banner is-hidden" role="status" aria-live="polite"></div>
+
+      <div class="detail-cmc-shell">
+        <aside class="detail-cmc-sidebar">
+          <div class="detail-cmc-side-card detail-cmc-side-hero">
+            <div class="detail-cmc-side-hero-top">
+              <div class="detail-coin-identity detail-cmc-identity">
+                <img id="detailIcon" src="" alt="" class="coin-icon detail-cmc-lg-icon" />
+                <div>
+                  <div class="detail-name detail-cmc-title" id="detailName">-</div>
+                  <div class="detail-cmc-subrow">
+                    <span class="detail-symbol detail-cmc-symbol-pill" id="detailSymbol">-</span>
+                    <span class="detail-rank-badge" id="detailRankBadge">#-</span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" id="detailCmcWatchBtn" class="detail-cmc-watch" aria-label="Watchlist">★</button>
+            </div>
+            <div class="detail-price-row">
+              <span class="detail-price" id="detailPrice">-</span>
+              <span class="detail-change-badge" id="detailChange">-</span>
+            </div>
+            <p id="detailPriceSecondary" class="muted-small df-detail-fiat" aria-live="polite"></p>
+            <p id="detailSourceLine" class="muted-small df-source-line"></p>
+            <div id="detailDftDexPanel" class="detail-dft-dex-panel hidden" hidden></div>
+            <div class="detail-hl-row">
+              <span class="muted range-label">24h <span id="detailLow24">-</span></span>
+              <div class="detail-range-bar"><div class="detail-range-fill" id="detailRangeFill"></div></div>
+              <span class="muted range-label">24h <span id="detailHigh24">-</span></span>
+            </div>
+            <div class="detail-cmc-spark-hero" aria-hidden="false">
+              <div class="detail-cmc-spark-head"><span id="detailSparkLabel">7 Tage</span></div>
+              <div id="detailSidebarSparkWrap" class="detail-cmc-spark-wrap"></div>
+            </div>
+          </div>
+
+          <div class="detail-cmc-side-card detail-cmc-stat-block">
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailMcapLabel">Marktkapitalisierung</span>
+              <span class="detail-cmc-stat-v"><span id="detailMcap">-</span> <small id="detailMcapPct" class="detail-cmc-pct"></small></span>
+            </div>
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailVolumeLabel">24h Volumen</span>
+              <span class="detail-cmc-stat-v"><span id="detailVolume">-</span> <small id="detailVolPctRow" class="detail-cmc-pct"></small></span>
+            </div>
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailVolMcapLabel">Vol / MCAP</span>
+              <span class="detail-cmc-stat-v" id="detailVolMcap">—</span>
+            </div>
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailFdvLabel">FDV</span>
+              <span class="detail-cmc-stat-v" id="detailFdv">—</span>
+            </div>
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailSupplyLabel">Umlauf</span>
+              <span class="detail-cmc-stat-v" id="detailSupply">-</span>
+            </div>
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailTotalSupplyLabel">Gesamt</span>
+              <span class="detail-cmc-stat-v" id="detailTotalSupply">—</span>
+            </div>
+            <div class="detail-cmc-stat-line">
+              <span class="detail-cmc-stat-k" id="detailMaxSupplyLabel">Max</span>
+              <span class="detail-cmc-stat-v" id="detailMaxSupply">—</span>
+            </div>
+            <div class="detail-cmc-mini-grid">
+              <div><span class="muted">24h</span><div id="detailChange24Stat" class="stat-value">-</div></div>
+              <div><span class="muted">7d</span><div id="detailChange7d" class="stat-value">-</div></div>
+              <div><span class="muted" id="detailRankLabel">Rang</span><div id="detailRank" class="stat-value">-</div></div>
+            </div>
+          </div>
+
+          <div class="detail-cmc-side-card">
+            <div class="detail-cmc-profile-head"><span id="detailProfileLabel">Profil</span><strong id="detailProfileScore">—</strong></div>
+            <div class="detail-cmc-profile-track"><div class="detail-cmc-profile-fill" id="detailProfileFill"></div></div>
+          </div>
+
+          <div class="detail-cmc-side-card">
+            <div class="detail-cmc-h" id="detailLinksHeading">Links</div>
+            <div id="detailCmcLinks" class="detail-cmc-link-stack"></div>
+          </div>
+
+          <div class="detail-cmc-side-card">
+            <div class="detail-cmc-h" id="detailConverterTitleEl">Umrechner</div>
+            <div class="detail-cmc-conv">
+              <input type="number" class="detail-cmc-conv-input" id="detailCvtAmt" min="0" step="any" value="1" />
+              <span class="detail-cmc-conv-sym" id="detailCvtSym">BTC</span>
+            </div>
+            <div class="detail-cmc-conv-out">≈ <span id="detailCvtUsd">—</span> USD</div>
+          </div>
+
+          <div class="detail-cmc-side-card">
+            <div class="detail-cmc-ath-grid">
+              <div>
+                <span class="muted" id="detailAthLabel">ATH</span>
+                <div id="detailAthBlock" class="detail-cmc-extreme">—</div>
+              </div>
+              <div>
+                <span class="muted" id="detailAtlLabel">ATL</span>
+                <div id="detailAtlBlock" class="detail-cmc-extreme">—</div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <div class="detail-cmc-main">
+          <nav class="detail-cmc-tabbar" role="tablist" aria-label="Coin Detail">
+            <button type="button" class="detail-cmc-tab active" role="tab" data-detail-panel="chart" aria-selected="true">Chart</button>
+            <button type="button" class="detail-cmc-tab" role="tab" data-detail-panel="about" aria-selected="false">Über</button>
+            <button type="button" class="detail-cmc-tab" role="tab" data-detail-panel="alerts" aria-selected="false">Alerts</button>
+          </nav>
+
+          <div class="detail-cmc-panel" data-detail-panel="chart">
+            <div id="detailCmcQuickStats" class="detail-cmc-quick-stats" aria-label="Kurzüberblick"></div>
+            <div class="detail-layout detail-cmc-chart-grid">
+              <div class="chart-card detail-cmc-chart-pane">
+                <div class="chart-header">
+                  <div class="trading-inline-header">
+                    <span id="chartHeaderTitle">Preis‑Chart (1‑Min Candles, Binance)</span>
+                    <div class="timeframe-buttons">
+                      <button class="timeframe-btn active" data-tf="1">1m</button>
+                      <button class="timeframe-btn" data-tf="5">5m</button>
+                      <button class="timeframe-btn" data-tf="15">15m</button>
+                      <button class="timeframe-btn" data-tf="60">1h</button>
+                      <button class="timeframe-btn" data-tf="240">4h</button>
+                      <button class="timeframe-btn" data-tf="1D">1d</button>
+                      <button class="timeframe-btn" data-tf="1W">1w</button>
+                      <button class="timeframe-btn" data-tf="1M">1M</button>
+                    </div>
+                  </div>
+                  <span class="muted" id="chartInfo">Preis-Chart (TradingView) · Funding &amp; OI darunter</span>
+                </div>
+                <div class="detail-chart-full">
+                  <div id="chartContainer"></div>
+                  <div class="muted chart-error" id="chartError"></div>
+                </div>
+                <section id="detailFundingDesk" class="df-funding-desk" aria-label="Funding Rates" hidden>
+                  <div class="df-funding-head">
+                    <h3>Funding Rates</h3>
+                    <span id="detailFundingCountdown" role="timer" aria-live="polite"></span>
+                  </div>
+                  <div id="detailFundingCards" class="df-funding-cards"></div>
+                  <div class="df-funding-hist-head">
+                    <h4>Historische Funding-Kurve</h4>
+                    <div class="df-funding-hist-tabs" role="tablist">
+                      <button type="button" class="timeframe-btn is-active" data-funding-hist="binance">Binance</button>
+                      <button type="button" class="timeframe-btn" data-funding-hist="bybit">Bybit</button>
+                      <button type="button" class="timeframe-btn" data-funding-hist="okx">OKX</button>
+                    </div>
+                  </div>
+                  <div class="df-funding-chart-wrap">
+                    <svg id="detailFundingChartSvg" class="df-funding-chart-svg" role="img" aria-label="Funding-Verlauf"></svg>
+                  </div>
+                  <p id="detailFundingChartNote" class="muted-small"></p>
+                  <p class="df-funding-foot muted-small">Positiv = Longs zahlen Shorts (oft überkauft). Negativ = Shorts zahlen Longs. Keine Anlageberatung.</p>
+                </section>
+                <section id="detailOiDesk" class="df-oi-desk" aria-label="Open Interest" hidden>
+                  <div class="df-oi-head">
+                    <h3>Open Interest (OI)</h3>
+                    <p class="muted-small">Gebundenes Kapital in Futures — OI + Preis zusammen lesen.</p>
+                  </div>
+                  <div id="detailOiStats" class="df-oi-stats"></div>
+                  <div class="df-oi-charts">
+                    <div class="df-oi-chart-block">
+                      <h4>OI-Chart (USD)</h4>
+                      <div class="df-oi-chart-box">
+                        <svg id="detailOiChartSvg" role="img" aria-label="Open Interest Verlauf"></svg>
+                      </div>
+                    </div>
+                    <div class="df-oi-chart-block">
+                      <h4>OI vs. Preis (Overlay)</h4>
+                      <div class="df-oi-chart-box">
+                        <svg id="detailOiOverlaySvg" role="img" aria-label="OI und Preis Overlay"></svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="df-oi-legend" aria-hidden="true">
+                    <span class="df-oi-legend-oi">— OI % (seit Serienstart)</span>
+                    <span class="df-oi-legend-px">- - Preis %</span>
+                  </div>
+                  <p id="detailOiNote" class="muted-small"></p>
+                  <p class="muted-small">Keine Anlageberatung.</p>
+                </section>
+              </div>
+              <div class="orderbook-card detail-cmc-orderbook-pane">
+                <div class="chart-header">
+                  <span>Orderbuch</span>
+                  <span class="muted">Binance Spot</span>
+                </div>
+                <div id="orderbookContainer">
+                  <div class="orderbook-header">
+                    <span>Preis (USDT)</span>
+                    <span>Menge</span>
+                    <span>Kumulativ</span>
+                  </div>
+                  <div id="orderbookAsks" class="orderbook-asks"></div>
+                  <div class="orderbook-spread">
+                    <span id="orderbookSpread">-</span>
+                  </div>
+                  <div id="orderbookBids" class="orderbook-bids"></div>
+                </div>
+              </div>
+            </div>
+
+            <section class="detail-cmc-ai-band" aria-label="DayFlow AI">
+              <div class="detail-cmc-ai-band-head">
+                <div class="detail-cmc-ai-band-title">
+                  <strong>DayFlow AI</strong>
+                  <span class="muted">Analyse mit Live-Daten zu diesem Asset</span>
+                </div>
+                <button type="button" id="detailAiAnalyzeBtn" class="detail-cmc-ai-analyze-btn">Coin analysieren</button>
+              </div>
+              <div class="detail-cmc-ai-scroll" id="detailCmcAiCards"></div>
+            </section>
+          </div>
+
+          <div class="detail-cmc-panel" data-detail-panel="about" hidden>
+            <div class="detail-cmc-prose card-like" id="detailPanelAboutInner"></div>
+          </div>
+
+          <div class="detail-cmc-panel" data-detail-panel="alerts" hidden>
+            <div class="alerts-card">
+              <div class="chart-header">
+                <span>Preis-Alerts</span>
+                <button id="addAlertBtn" class="add-alert-btn">+ Alert hinzufügen</button>
+              </div>
+              <div id="alertsList"></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="detail-cmc-news-col" aria-label="Asset headlines">
+          <div class="detail-cmc-side-card detail-cmc-news-card">
+            <div class="detail-cmc-news-head">
+              <h2 class="detail-cmc-h detail-cmc-news-h" id="detailCoinNewsTitle">News</h2>
+              <button type="button" class="detail-cmc-news-refresh" id="detailCoinNewsRefresh">↻</button>
+            </div>
+            <p class="muted-small detail-cmc-news-sub" id="detailCoinNewsSub"></p>
+            <div id="detailCoinNewsInner" class="detail-cmc-news-list"></div>
+            <div id="detailCoinNewsFooter" class="muted-small detail-cmc-news-meta"></div>
+          </div>
+        </aside>
+
+        <section class="detail-cmc-markets-wide" aria-label="Markets">
+          <div class="markets-card">
+            <div class="chart-header">
+              <span id="marketsHeaderTitle">Markets</span>
+              <span class="muted" id="marketsHeaderSub">CoinGecko + Binance</span>
+            </div>
+            <div class="table-scroll-wrap">
+              <table class="markets-table" id="marketsTable">
+                <thead>
+                  <tr>
+                    <th id="marketsThIdx">#</th>
+                    <th id="marketsThExchange">Exchange</th>
+                    <th id="marketsThType">Typ</th>
+                    <th id="marketsThPair">Pair</th>
+                    <th id="marketsThPrice">Preis</th>
+                    <th id="marketsThDepth">Tiefe ±2%</th>
+                    <th id="marketsThVolume">Volumen (24h)</th>
+                    <th id="marketsThVolPct">Vol %</th>
+                    <th id="marketsThScore">Score</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+
+  <nav id="dfBottomNav" class="df-bottom-nav" aria-label="Hauptnavigation">
+    <button type="button" class="df-bottom-nav-btn is-active" data-df-nav="market"><span class="df-bottom-nav-ico" aria-hidden="true">▤</span><span>Markt</span></button>
+    <button type="button" class="df-bottom-nav-btn" data-df-nav="swap"><span class="df-bottom-nav-ico" aria-hidden="true">⇄</span><span>Swap</span></button>
+    <button type="button" class="df-bottom-nav-btn" data-df-nav="pools"><span class="df-bottom-nav-ico" aria-hidden="true">◎</span><span>Pools</span></button>
+    <button type="button" class="df-bottom-nav-btn" data-df-nav="simulate"><span class="df-bottom-nav-ico" aria-hidden="true">▢</span><span>Üben</span></button>
+    <button type="button" class="df-bottom-nav-btn" data-df-nav="more"><span class="df-bottom-nav-ico" aria-hidden="true">⋯</span><span>Mehr</span></button>
+    <button type="button" class="df-bottom-nav-btn" data-df-nav="ai"><span class="df-bottom-nav-ico" aria-hidden="true">✦</span><span>KI</span></button>
+  </nav>
+
+  <button id="aiFab" class="ai-fab" title="AI Crypto Assistent">✦</button>
+
+  <div id="aiPanel" class="ai-panel">
+    <div class="ai-panel-header">
+      <div class="ai-panel-title">✦ <span>Crypto</span>AI <span id="aiModelBadge" class="ai-model-badge">lokal</span></div>
+      <div class="ai-panel-actions">
+        <select id="aiModelSelect" class="ai-model-select" title="Modell wählen">
+          <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC" selected>Llama 3.2 1B Turbo (~550 MB, sehr schnell)</option>
+          <option value="Llama-3.2-1B-Instruct-q4f32_1-MLC">Llama 3.2 1B (~700 MB, stabil)</option>
+          <option value="Llama-3.2-3B-Instruct-q4f32_1-MLC">Llama 3.2 3B (~2 GB, schlauer)</option>
+          <option value="Phi-3.5-mini-instruct-q4f16_1-MLC">Phi 3.5 Mini (~2,4 GB, langsamer — nur bei guter GPU)</option>
+          <option value="rule-based">Klassisch (ohne LLM)</option>
+        </select>
+        <button id="aiPanelClose" class="ai-panel-close">✕</button>
+      </div>
+    </div>
+    <div class="ai-panel-toolbar">
+      <label class="visually-hidden" for="aiPromptTemplateSelect">Prompt-Vorlage</label>
+      <select id="aiPromptTemplateSelect" class="ai-prompt-template-select" title="Vorlage ins Eingabefeld">
+        <option value="">Vorlage wählen…</option>
+        <option value="Bewerte mein Wallet kompakt: Diversifikation, Risiko und größtes Klumpenrisiko.">Wallet kompakt</option>
+        <option value="Vergleiche meine Watchlist mit typischen Portfolio-Gewichtungen — was fehlt, was ist übergewichtet?">Watchlist vs. Typportfolio</option>
+        <option value="Erkläre Stablecoins und Bridge-Risiken in 5 Bulletpoints für Einsteiger.">Stablecoins &amp; Bridges</option>
+        <option value="Stelle einen 3‑Szenen‑Plan vor: bullisch, basisch, bärisch — nur Bildung, keine Anlageberatung.">Szenario‑Denken</option>
+        <option value="Liste konkrete Checks vor einem Token‑Swap (Slippage, Contract, Explorer) als Kurz‑Checkliste.">Pre‑Swap‑Checkliste</option>
+        <option value="Fasse Fear &amp; Greed und die 24h‑Breite im Top‑100 kurz zusammen — nur mit den LIVE‑Daten aus dem Prompt, keine Prognose.">Fear &amp; Greed + Breite</option>
+        <option value="Watchlist kompakt: sortiere meine Stern‑Coins nach 24h‑Performance und nenne nur Zahlen aus dem Kontext.">Watchlist Kompakt</option>
+        <option value="Paper Trading Stand: erkläre Bargeld, Spot‑Symbole, offene Derivate und realisierten P&amp;L nur anhand der PAPER‑Zeile im Prompt.">Paper Status (KI)</option>
+      </select>
+      <button type="button" id="aiExportChatBtn" class="ai-toolbar-btn" title="Chat als Textdatei">⬇ Chat</button>
+    </div>
+    <div id="aiCoachHub" class="ai-coach-hub">
+      <div class="ai-coach-hub-head">
+        <h2>✦ AI Portfolio-Coach</h2>
+        <button type="button" id="aiCoachHubToggle" class="ai-coach-hub-toggle" title="Ein-/ausklappen" aria-expanded="true">▾</button>
+      </div>
+      <div id="aiCoachHubBody" class="ai-coach-hub-body">
+        <article class="ai-coach-featured">
+          <h3>Portfolio analysieren</h3>
+          <p id="aiCoachPortfolioStatus">Wallet nicht verbunden — unter 🔗 Wallet verbinden.</p>
+          <p class="muted-small">Risiko-Score, Warnungen, Verbesserungen &amp; Chancen aus Diversifikation, Stablecoins &amp; lokalem Verlauf. Llama 3.2 / Phi 3.5 optional vertiefen.</p>
+          <div class="ai-coach-actions">
+            <button type="button" id="aiCoachPortfolioRun" class="auth-button primary">Analyse anzeigen</button>
+            <button type="button" id="aiCoachPortfolioAi" class="auth-button secondary">Mit Turbo-KI vertiefen</button>
+          </div>
+        </article>
+        <div id="aiCoachResult" class="ai-coach-result" hidden></div>
+        <article class="ai-coach-featured ai-coach-featured--secondary">
+          <h3>Coin-Analyse (KI)</h3>
+          <p id="aiCoachCoinStatus">Kein Coin-Detail offen — öffne einen Coin.</p>
+          <p class="muted-small">Risiko, Potenzial, Liquidität, Volumen &amp; On-Chain/Perps aus Live-Daten, CoinGecko &amp; Detail-Desk.</p>
+          <div class="ai-coach-actions">
+            <button type="button" id="aiCoachCoinRun" class="auth-button primary">Coin analysieren</button>
+            <button type="button" id="aiCoachCoinAi" class="auth-button secondary">Mit Turbo-KI vertiefen</button>
+          </div>
+          <div id="aiCoachCoinResult" class="ai-coach-result" hidden></div>
+        </article>
+        <article class="ai-coach-featured ai-coach-featured--secondary">
+          <h3>Watchlist-Optimierung</h3>
+          <p id="aiCoachWatchlistStatus">Watchlist aus Sternen in der Coin-Liste.</p>
+          <p class="muted-small">Passt zu deinem Risiko-Profil (Wallet-Health oder Notiz) · redundante Klumpen erkennen.</p>
+          <div class="ai-coach-actions">
+            <button type="button" id="aiCoachWatchlistRun" class="auth-button primary">Watchlist prüfen</button>
+            <button type="button" id="aiCoachWatchlistAi" class="auth-button secondary">Mit Turbo-KI vertiefen</button>
+          </div>
+          <div id="aiCoachWatchlistResult" class="ai-coach-result" hidden></div>
+        </article>
+        <article class="ai-coach-featured ai-coach-featured--secondary">
+          <h3>Markt-Zusammenfassung</h3>
+          <p id="aiCoachMarketStatus">Tagesüberblick: Trend, Funding, OI, Liquidationen, News.</p>
+          <p class="muted-small">Datum: <span id="aiCoachMarketDate">—</span> · Cache pro Tag in diesem Browser.</p>
+          <div class="ai-coach-actions">
+            <button type="button" id="aiCoachMarketRun" class="auth-button primary">Zusammenfassung generieren</button>
+            <button type="button" id="aiCoachMarketRefresh" class="auth-button secondary" title="Cache ignorieren">Neu laden</button>
+            <button type="button" id="aiCoachMarketAi" class="auth-button secondary">Mit Turbo-KI polieren</button>
+          </div>
+          <div id="aiCoachMarketResult" class="ai-coach-result" hidden></div>
+        </article>
+      </div>
+    </div>
+    <div id="aiStatusBar" class="ai-status-bar" style="display:none;">
+      <span id="aiStatusText">Bereit</span>
+      <div class="ai-progress"><div id="aiProgressFill" class="ai-progress-fill"></div></div>
+    </div>
+    <div id="aiMessages" class="ai-messages">
+      <div class="ai-msg assistant"><b>DayFlow AI</b> — Markt, Watchlist, Paper, Wallet und <b>geöffnetes Coin-Detail</b> im Kontext. Die <b>Turbo-KI</b> (Llama lokal) startet beim ersten Besuch <b>automatisch im Hintergrund</b> — Fortschritt unten in der Statusleiste. <b>Ohne WebGPU:</b> Rule-Mode mit Live-Daten.</div>
+      <div class="ai-msg assistant ai-setup-msg">
+        <button id="aiSetupBtn" class="auth-button primary" type="button">Turbo-KI wird geladen…</button>
+      </div>
+    </div>
+    <div id="aiQuickActions" class="ai-quick-actions" data-ai-active-scope="market">
+      <button class="ai-quick" type="button" data-ai-scope="market" data-ai-prompt="Gib mir einen kurzen Marktüberblick: Wie steht der Markt heute, wer sind die Top Gainer und Loser?">Markt heute</button>
+      <button class="ai-quick" type="button" data-ai-scope="market" data-ai-prompt="Watchlist kompakt: liste meine Stern-Coins mit Preis und 24h-% sortiert nach Performance.">Watchlist</button>
+      <button class="ai-quick" type="button" data-ai-scope="market" data-ai-prompt="Welche Coins sind heute besonders riskant oder volatil?">Risiko-Screen</button>
+      <button class="ai-quick" type="button" data-ai-scope="swap" data-ai-prompt="Erkläre kurz Kurs, Gas und Slippage für meinen geplanten Swap — nur mit LIVE-Daten, keine Garantie.">Swap erklären</button>
+      <button class="ai-quick" type="button" data-ai-scope="swap" data-ai-prompt="Liste konkrete Checks vor dem Öffnen von 1inch (Contract, Netzwerk, Slippage) als Kurz-Checkliste.">Vor 1inch</button>
+      <button class="ai-quick" type="button" data-ai-scope="wallet" data-ai-prompt="Bewerte mein Wallet kompakt: Diversifikation, Risiko und größtes Klumpenrisiko — nur mit WALLET-Daten im Prompt.">Wallet kompakt</button>
+      <button class="ai-quick" type="button" data-ai-scope="wallet" data-ai-prompt="Analysiere mein Portfolio mit den aktuellen LIVE-Daten aus dem Wallet-Block.">Portfolio</button>
+      <button class="ai-quick" type="button" data-ai-scope="simulate" data-ai-prompt="Paper Stand: fasse Bargeld, Spot-Symbole, offene Derivate und realisierten P&amp;L aus dem Paper-Trading zusammen.">Paper Stand</button>
+      <button class="ai-quick" type="button" data-ai-scope="simulate" data-ai-prompt="Was bedeuten die aktuellen Prediction-Market-Daten im Kontext — nur Bildung, keine Wettempfehlung?">Predictions</button>
+      <button class="ai-quick" type="button" data-ai-scope="detail" data-ai-prompt="Analysiere den geöffneten Coin kompakt: Preis, 24h/7d, Marktkapitalisierung, Volumen und Risiken — nur LIVE-Daten aus dem Prompt.">Coin-Analyse</button>
+      <button class="ai-quick" type="button" data-ai-scope="detail" data-ai-prompt="Vergleiche diesen Coin mit Bitcoin anhand der Zahlen im Kontext — nur Bildung, keine Empfehlung.">vs. BTC</button>
+      <button class="ai-quick" type="button" data-ai-scope="detail" data-ai-prompt="Welche Risiken und Liquiditäts-Hinweise ergeben sich nur aus den Live-Metriken im Prompt?">Risiken</button>
+      <button class="ai-quick" type="button" data-ai-scope="market" data-ai-prompt="Market Summary: Fasse den Gesamtmarkt in 5 Bulletpoints zusammen — nur LIVE-Daten aus dem Prompt, keine Prognose.">Market Summary</button>
+      <button class="ai-quick" type="button" data-ai-scope="wallet" data-ai-prompt="Portfolio-Verbesserung: Was könnte ich an Diversifikation und Risiko verbessern — nur mit WALLET-Daten im Prompt, keine Anlageberatung.">Portfolio-Tipps</button>
+      <button class="ai-quick" type="button" data-ai-scope="market" data-ai-prompt="Risiko-Analyse: Welche Coins im LIVE-Block wirken heute am volatilsten und warum — nur Zahlen, keine Empfehlung.">Risiko-Analyse</button>
+      <button class="ai-quick" type="button" data-ai-scope="swap" data-ai-prompt="Swap-Checkliste: 6 konkrete Checks vor einem Swap (Netzwerk, Slippage, Contract, Explorer) — bildend, keine Garantie.">Swap-Checkliste</button>
+    </div>
+    <div class="ai-input-row">
+      <input id="aiInput" class="ai-input" type="text" placeholder="Frag mich über Krypto oder dein Wallet..." autocomplete="off" />
+      <button id="aiSend" class="ai-send">➤</button>
+    </div>
+  </div>
+
+  <div id="shortcutsHelpModal" class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="shortcutsHelpTitle">
+    <div class="auth-card shortcuts-help-card">
+      <button type="button" class="auth-close" id="closeShortcutsHelpBtn">✕</button>
+      <div class="auth-card-header">
+        <h2 id="shortcutsHelpTitle" class="auth-card-title">Tastenkürzel</h2>
+        <p class="auth-card-subtitle">Schneller navigieren und arbeiten</p>
+      </div>
+      <ul class="shortcuts-list">
+        <li><kbd>/</kbd> Suche fokussieren</li>
+        <li><kbd>?</kbd> Diese Hilfe</li>
+        <li><kbd>Esc</kbd> Schließen (Modals, KI-Panel)</li>
+        <li><kbd>h</kbd> Markt</li>
+        <li><kbd>s</kbd> Swap</li>
+        <li><kbd>w</kbd> Wallet Connect</li>
+        <li><kbd>p</kbd> Paper (Üben)</li>
+        <li><kbd>e</kbd> / <kbd>k</kbd> Predictions (Üben)</li>
+        <li><kbd>a</kbd> / <kbd>n</kbd> KI-Panel</li>
+        <li><kbd>Shift</kbd>+<kbd>/</kbd> KI-Panel</li>
+      </ul>
+      <p class="pro-muted">In Eingabefeldern sind <kbd>/</kbd> und <kbd>?</kbd> deaktiviert, damit du normal tippen kannst.</p>
+    </div>
+  </div>
+
+  <div id="swapTokenModal" class="df-uni-token-modal" hidden role="dialog" aria-modal="true" aria-labelledby="swapTokenModalTitle">
+    <button type="button" class="df-uni-token-modal-backdrop" id="swapTokenModalBackdrop" tabindex="-1" aria-label="Schließen"></button>
+    <div class="df-uni-token-modal-panel">
+      <header class="df-uni-token-modal-head">
+        <h2 id="swapTokenModalTitle" class="df-uni-token-modal-title">Token wählen</h2>
+        <button type="button" class="df-uni-token-modal-close" id="swapTokenModalClose" aria-label="Schließen">✕</button>
+      </header>
+      <div id="swapTokenChainFilters" class="df-uni-chain-filters" role="toolbar" aria-label="Netzwerk filtern"></div>
+      <input type="search" id="swapTokenSearch" class="df-uni-token-search" placeholder="Token suchen (alle Netzwerke &amp; Coins)…" autocomplete="off" />
+      <p id="swapTokenModalHint" class="df-uni-token-modal-hint">Alle Netzwerke · Suche nach Name, Symbol oder Chain</p>
+      <div id="swapTokenList" class="df-uni-token-list" role="listbox"></div>
+    </div>
+  </div>
+
+  <div id="dfToastStack" class="df-toast-stack" aria-live="polite"></div>
+
+  <div id="dayflowStatusFooter" class="df-status-footer df-layout-inner" role="contentinfo" aria-label="Globale Markt-Kennzahlen">
+    <span class="df-status-item"><span class="df-status-label">Cryptos:</span> <strong id="dfStatCoins">—</strong></span>
+    <span class="df-status-item"><span class="df-status-label">Exchanges:</span> <strong id="dfStatExchanges">—</strong></span>
+    <span class="df-status-item"><span class="df-status-label">Market Cap:</span> <strong id="dfStatMcap">—</strong> <span id="dfStatMcapChange" class="df-status-change">—</span></span>
+    <span class="df-status-item"><span class="df-status-label">24h Vol:</span> <strong id="dfStatVol">—</strong></span>
+    <span class="df-status-item"><span class="df-status-label">Dominance:</span> BTC <strong id="dfStatBtcDom">—</strong> · ETH <strong id="dfStatEthDom">—</strong></span>
+    <span class="df-status-item"><span class="df-status-label">ETH Gas:</span> <strong id="dfStatEthGas">—</strong> <span class="df-status-label">Gwei</span></span>
+    <span class="df-status-item"><span class="df-status-label">Fear &amp; Greed:</span> <strong id="dfStatFng">—</strong>/100</span>
+  </div>
+
+  <div id="dayflowAskAiBar" class="df-ask-ai-bar df-layout-inner" role="search" aria-label="DayFlow AI öffnen">
+    <span class="df-ask-ai-icon">✦</span>
+    <input id="dayflowAskAiInput" class="df-ask-ai-input" type="text" placeholder="Ask DayFlow AI — Markt, Watchlist, Wallet…" autocomplete="off" />
+    <span class="df-ask-ai-kbd"><kbd>Shift</kbd> + <kbd>/</kbd></span>
+    <button type="button" id="dayflowAskAiOpen" class="df-ask-ai-go" title="DayFlow AI öffnen">→</button>
+  </div>
+
+  <div id="dexRadarDetail" class="df-dex-detail" role="dialog" aria-modal="true" aria-label="Pool-Details">
+    <div class="df-dex-detail-backdrop" id="dexRadarDetailBackdrop"></div>
+    <div class="df-dex-detail-panel">
+      <div id="dexRadarDetailBody"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="./df-perf.js" defer></script>
+  <script src="./df-swap-uni.js" defer></script>
+  <script src="./df-pwa.js" defer></script>
+  <!-- df-security.js + config bereits im head -->
+  <script src="./df-auth-flow.js" defer></script>
+  <script src="./df-features.js" defer></script>
+  <script src="./df-news-intel.js" defer></script>
+  <script src="./df-paper-indicators.js" defer></script>
+  <script src="./df-honeypot-scanner.js" defer></script>
+  <script src="./df-dex-radar.js" defer></script>
+  <script src="./df-airdrop-finder.js" defer></script>
+  <script src="./df-whale-tracker.js" defer></script>
+  <script src="./df-funding-rates.js" defer></script>
+  <script src="./df-gas-optimizer.js" defer></script>
+  <script src="./df-open-interest.js" defer></script>
+  <script src="./df-ai-coach.js?v=2" defer></script>
+  <script src="./df-wallet-risk-monitor.js" defer></script>
+  <script src="./df-wallet-alerts.js" defer></script>
+  <script src="./df-ts-bridge.js" defer></script>
+  <script src="./app.js" defer></script>
+  <script src="./df-wallet-connect.js" defer></script>
+</body>
+</html>
