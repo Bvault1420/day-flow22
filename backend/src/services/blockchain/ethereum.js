@@ -18,7 +18,6 @@ async function rpcCall(method, params) {
       id: 1,
     });
     if (data?.result) return data.result;
-    if (data?.error) console.warn(`RPC ${rpc}:`, data.error.message);
   }
   return null;
 }
@@ -28,10 +27,22 @@ async function getTransactionCount(address) {
   return result ? parseInt(result, 16) : 0;
 }
 
+async function fetchAddressInfo(address) {
+  const data = await safeGet(`${BLOCKSCOUT_API}/addresses/${address}`);
+  return data || {};
+}
+
 async function fetchRecentTransactions(address) {
   const data = await safeGet(
     `${BLOCKSCOUT_API}/addresses/${address}/transactions`,
     { params: { filter: "to | from" } }
+  );
+  return data?.items || [];
+}
+
+async function fetchTokenTransfers(address) {
+  const data = await safeGet(
+    `${BLOCKSCOUT_API}/addresses/${address}/token-transfers`
   );
   return data?.items || [];
 }
@@ -52,13 +63,17 @@ function detectRiskyPatterns(transactions) {
   };
 }
 
-function detectNftWashTrading(transactions) {
+function detectNftWashTrading(transactions, tokenTransfers) {
   const nftTransfers = transactions.filter(
     (tx) =>
       tx.method?.toLowerCase().includes("transfer") ||
       tx.tx_types?.includes("token_transfer")
   );
-  return nftTransfers.length >= 3 && nftTransfers.length <= 10;
+  const tokenCount = tokenTransfers?.length || 0;
+  return (
+    (nftTransfers.length >= 3 && nftTransfers.length <= 10) ||
+    (tokenCount >= 8 && tokenCount <= 20)
+  );
 }
 
 function countScamExposure(address, transactions, chain) {
@@ -86,19 +101,43 @@ function detectMixerUsage(address, transactions, chain) {
   return false;
 }
 
+function computeWalletAge(firstTxTimestamp) {
+  if (!firstTxTimestamp) return null;
+  const first = new Date(firstTxTimestamp);
+  const days = Math.floor((Date.now() - first.getTime()) / (1000 * 60 * 60 * 24));
+  return days > 0 ? days : null;
+}
+
+function computeActivityLevel(txCount) {
+  if (txCount === 0) return "inactive";
+  if (txCount < 5) return "low";
+  if (txCount < 50) return "moderate";
+  if (txCount < 500) return "active";
+  return "very_active";
+}
+
 async function analyzeEthereumWallet(address) {
   const normalized = address.toLowerCase();
   if (!/^0x[a-fA-F0-9]{40}$/.test(normalized)) {
     throw new Error("Invalid Ethereum address format");
   }
 
+  const addressInfo = await fetchAddressInfo(normalized);
   const txCount = await getTransactionCount(normalized);
   const transactions = await fetchRecentTransactions(normalized);
+  const tokenTransfers = await fetchTokenTransfers(normalized);
+
+  const firstTx = transactions[transactions.length - 1];
+  const walletAgeDays = computeWalletAge(firstTx?.timestamp);
+
+  const balanceEth = parseFloat(addressInfo.coin_balance || "0");
+  const exchangeRate = parseFloat(addressInfo.exchange_rate || "0");
+  const balanceUsd = balanceEth * exchangeRate;
 
   const scamExposure = countScamExposure(normalized, transactions, "ethereum");
   const mixerUsage = detectMixerUsage(normalized, transactions, "ethereum");
   const riskyPatterns = detectRiskyPatterns(transactions);
-  const nftWashTrading = detectNftWashTrading(transactions);
+  const nftWashTrading = detectNftWashTrading(transactions, tokenTransfers);
 
   return {
     chain: "ethereum",
@@ -108,6 +147,10 @@ async function analyzeEthereumWallet(address) {
     mixerUsage,
     riskyPatterns,
     nftWashTrading,
+    walletAgeDays,
+    balanceUsd: balanceUsd > 0 ? balanceUsd : null,
+    tokenTransferCount: tokenTransfers.length,
+    activityLevel: computeActivityLevel(txCount || transactions.length),
   };
 }
 

@@ -1,7 +1,18 @@
 import axios from "axios";
 
-// Same-origin proxy via Next.js rewrites — avoids browser network errors
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
+
+export interface SubScores {
+  liquidity?: number;
+  marketStrength?: number;
+  volatility?: number;
+  safety?: number;
+  community?: number;
+  activity?: number;
+  cleanRecord?: number;
+  behavior?: number;
+  maturity?: number;
+}
 
 export interface ScanDetails {
   scamExposure?: number;
@@ -16,23 +27,55 @@ export interface ScanDetails {
   wallet?: string;
   resolvedName?: string;
   inputQuery?: string;
+  walletAgeDays?: number | null;
+  balanceUsd?: number | null;
+  tokenTransferCount?: number;
+  activityLevel?: string;
   // Coin fields
   name?: string;
   symbol?: string;
+  coinId?: string;
+  image?: string | null;
   contractAddress?: string | null;
   marketCap?: number;
   volume24h?: number;
   priceUsd?: number;
+  priceChange24h?: number;
+  priceChange7d?: number;
+  priceChange30d?: number;
+  priceChange1y?: number;
   liquidityScore?: string;
   enoughLiquidity?: boolean;
+  volumeToMcapRatio?: number;
   isScam?: boolean;
   marketCapRank?: number | null;
+  exchangeCount?: number;
+  avgSpread?: number | null;
+  topExchanges?: string[];
+  circulatingSupply?: number;
+  totalSupply?: number;
+  maxSupply?: number | null;
+  ath?: number;
+  athChange?: number;
+  atl?: number;
+  categories?: string[];
+  homepage?: string | null;
+  githubStars?: number;
+  githubCommits4w?: number;
+  twitterFollowers?: number;
+  redditSubscribers?: number;
+  developerScore?: number;
+  sentimentUp?: number;
+  sentimentDown?: number;
+  lastUpdated?: string;
   type?: "wallet" | "coin";
 }
 
 export interface ScanResult {
   score: number;
   riskLevel: "low" | "medium" | "high";
+  subScores?: SubScores;
+  insights?: string[];
   details: ScanDetails;
 }
 
@@ -48,7 +91,7 @@ export interface HistoryEntry {
 
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 30000,
+  timeout: 45000,
 });
 
 function getErrorMessage(err: unknown): string {

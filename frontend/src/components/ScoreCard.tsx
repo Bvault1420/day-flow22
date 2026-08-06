@@ -13,7 +13,7 @@ function getRiskStyles(level: string) {
         border: "border-green-200",
         text: "text-green-700",
         badge: "bg-green-100 text-green-800",
-        label: "Low Risk",
+        label: "Niedriges Risiko",
       };
     case "medium":
       return {
@@ -21,7 +21,7 @@ function getRiskStyles(level: string) {
         border: "border-yellow-200",
         text: "text-yellow-700",
         badge: "bg-yellow-100 text-yellow-800",
-        label: "Medium Risk",
+        label: "Mittleres Risiko",
       };
     case "high":
       return {
@@ -29,7 +29,7 @@ function getRiskStyles(level: string) {
         border: "border-red-200",
         text: "text-red-700",
         badge: "bg-red-100 text-red-800",
-        label: "High Risk",
+        label: "Hohes Risiko",
       };
     default:
       return {

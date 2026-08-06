@@ -5,6 +5,8 @@ import ScanTabs, { ScanMode } from "@/components/ScanTabs";
 import ScanInput from "@/components/ScanInput";
 import ScoreCard from "@/components/ScoreCard";
 import DetailsTable from "@/components/DetailsTable";
+import ScoreBreakdown from "@/components/ScoreBreakdown";
+import InsightsPanel from "@/components/InsightsPanel";
 import HistoryList from "@/components/HistoryList";
 import {
   scanWallet,
@@ -126,6 +128,10 @@ export default function HomePage() {
         {result && (
           <section className="flex flex-col items-center space-y-6">
             <ScoreCard result={result} mode={mode} />
+            {result.subScores && (
+              <ScoreBreakdown subScores={result.subScores} mode={mode} />
+            )}
+            {result.insights && <InsightsPanel insights={result.insights} />}
             <DetailsTable details={result.details} mode={mode} />
           </section>
         )}

@@ -82,6 +82,17 @@ async function analyzeBitcoinWallet(address) {
     mixerUsage: detectMixerUsage(address, txs),
     riskyPatterns: detectRiskyPatterns(txs),
     nftWashTrading: detectNftWashTrading(),
+    walletAgeDays: txs.length
+      ? Math.floor((Date.now() - txs[txs.length - 1].time * 1000) / 86400000)
+      : null,
+    activityLevel:
+      (data.n_tx || txs.length) === 0
+        ? "inactive"
+        : (data.n_tx || txs.length) < 5
+          ? "low"
+          : (data.n_tx || txs.length) < 50
+            ? "moderate"
+            : "active",
   };
 }
 

@@ -58,6 +58,16 @@ async function analyzeSolanaWallet(address) {
     mixerUsage,
     riskyPatterns: detectRiskyPatterns(signatures),
     nftWashTrading: detectNftWashTrading(signatures),
+    activityLevel:
+      signatures.length === 0
+        ? "inactive"
+        : signatures.length < 5
+          ? "low"
+          : signatures.length < 20
+            ? "moderate"
+            : signatures.length < 100
+              ? "active"
+              : "very_active",
   };
 }
 
