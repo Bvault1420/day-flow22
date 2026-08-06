@@ -1,8 +1,8 @@
-# Wallet Reputation Score
+# Wallet Reputation v2.0
 
-Crypto Wallet & Coin Risiko-Analyse — lokal auf localhost.
+Crypto Wallet & Coin Risiko-Analyse mit **Developer API**.
 
-## Schnellstart (ein Befehl)
+## Starten
 
 ```bash
 npm install
@@ -10,48 +10,22 @@ npm run install:all
 npm run dev
 ```
 
-Dann öffnen: **http://localhost:3000**
+- Website: http://localhost:3000
+- API: http://localhost:3001
+- API Keys: http://localhost:3000/developer
 
-- Backend API: http://localhost:3001
-- Frontend UI: http://localhost:3000
+## Developer API
 
-## Manuell (2 Terminals)
-
-```bash
-# Terminal 1 — Backend
-cd backend && npm install && npm run dev
-
-# Terminal 2 — Frontend
-cd frontend && npm install && npm run dev:clean
-```
-
-## Fehler „Cannot find module ./682.js“?
-
-Das ist ein kaputter Next.js Cache. Fix:
+1. Gehe zu `/developer` und erstelle einen API-Key
+2. Nutze den Key in deiner App:
 
 ```bash
-npm run clean
-cd frontend && npm run dev:clean
+curl -H "X-API-Key: wrs_dein_key" http://localhost:3001/api/v1/coin/BTC
+curl -H "X-API-Key: wrs_dein_key" http://localhost:3001/api/v1/wallet/vitalik.eth
 ```
 
-Oder komplett neu:
+## Security
 
-```bash
-rm -rf frontend/.next frontend/node_modules/.cache
-cd frontend && npm run dev
-```
-
-## Ports
-
-| Service  | URL |
-|----------|-----|
-| Frontend | http://localhost:3000 |
-| Backend  | http://localhost:3001 |
-| API Docs | http://localhost:3001/api/docs |
-
-## Features
-
-- Wallet Scan (Adresse, ENS-Name, BTC, Solana)
-- Coin Scan (Symbol, Name, Contract)
-- Multi-Source Pipeline (CoinGecko, DexScreener, DefiLlama, …)
-- Score 0–100 mit Risiko-Level
+- Helmet, Rate Limiting, Input Validation
+- API Keys gehasht gespeichert (SHA-256)
+- CORS nur für localhost:3000

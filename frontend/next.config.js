@@ -1,19 +1,5 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+module.exports = {
   reactStrictMode: true,
-  allowedDevOrigins: [
-    "localhost",
-    "127.0.0.1",
-    "*.cvm.dev",
-    "*.agent.cvm.dev",
-    "gent.cvm.dev",
-  ],
-  images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "coin-images.coingecko.com" },
-      { protocol: "https", hostname: "assets.coingecko.com" },
-    ],
-  },
+  images: { remotePatterns: [{ protocol: "https", hostname: "coin-images.coingecko.com" }] },
 };
-
-module.exports = nextConfig;
