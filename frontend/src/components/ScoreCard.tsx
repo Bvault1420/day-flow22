@@ -1,0 +1,69 @@
+import { ScanResult } from "@/lib/api";
+
+interface ScoreCardProps {
+  result: ScanResult;
+}
+
+function getRiskStyles(level: string) {
+  switch (level) {
+    case "low":
+      return {
+        bg: "bg-green-50",
+        border: "border-green-200",
+        text: "text-green-700",
+        badge: "bg-green-100 text-green-800",
+        label: "Low Risk",
+      };
+    case "medium":
+      return {
+        bg: "bg-yellow-50",
+        border: "border-yellow-200",
+        text: "text-yellow-700",
+        badge: "bg-yellow-100 text-yellow-800",
+        label: "Medium Risk",
+      };
+    case "high":
+      return {
+        bg: "bg-red-50",
+        border: "border-red-200",
+        text: "text-red-700",
+        badge: "bg-red-100 text-red-800",
+        label: "High Risk",
+      };
+    default:
+      return {
+        bg: "bg-gray-50",
+        border: "border-gray-200",
+        text: "text-gray-700",
+        badge: "bg-gray-100 text-gray-800",
+        label: "Unknown",
+      };
+  }
+}
+
+export default function ScoreCard({ result }: ScoreCardProps) {
+  const styles = getRiskStyles(result.riskLevel);
+
+  return (
+    <div
+      className={`w-full max-w-2xl rounded-2xl border-2 ${styles.border} ${styles.bg} p-8 text-center`}
+    >
+      <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
+        Reputation Score
+      </p>
+      <div className={`text-7xl font-bold ${styles.text} mb-4`}>
+        {result.score}
+      </div>
+      <span
+        className={`inline-block px-4 py-1.5 rounded-full text-sm font-semibold ${styles.badge}`}
+      >
+        {styles.label}
+      </span>
+      {result.details.chain && (
+        <p className="mt-4 text-sm text-gray-500">
+          Chain: <span className="font-medium capitalize">{result.details.chain}</span>
+        </p>
+      )}
+    </div>
+  );
+}
