@@ -1,75 +1,57 @@
 # Wallet Reputation Score
 
-A full-stack crypto wallet reputation scoring system — like a Schufa for crypto wallets.
+Crypto Wallet & Coin Risiko-Analyse — lokal auf localhost.
 
-## Tech Stack
-
-- **Backend**: Node.js + Express (port 3001)
-- **Frontend**: Next.js + React + TailwindCSS (port 3000)
-- **API Client**: Axios
-- **Database**: None (runtime only, browser localStorage for history)
-
-## Quick Start
-
-### Backend
+## Schnellstart (ein Befehl)
 
 ```bash
-cd backend
 npm install
+npm run install:all
 npm run dev
 ```
 
-Runs on http://localhost:3001
+Dann öffnen: **http://localhost:3000**
 
-### Frontend
+- Backend API: http://localhost:3001
+- Frontend UI: http://localhost:3000
+
+## Manuell (2 Terminals)
 
 ```bash
-cd frontend
-npm install
-npm run dev
+# Terminal 1 — Backend
+cd backend && npm install && npm run dev
+
+# Terminal 2 — Frontend
+cd frontend && npm install && npm run dev:clean
 ```
 
-Runs on http://localhost:3000
+## Fehler „Cannot find module ./682.js“?
 
-## API
+Das ist ein kaputter Next.js Cache. Fix:
 
-### POST /api/scan-wallet
-
-**Input:**
-```json
-{ "wallet": "0x123..." }
+```bash
+npm run clean
+cd frontend && npm run dev:clean
 ```
 
-**Output:**
-```json
-{
-  "score": 87,
-  "riskLevel": "low",
-  "details": {
-    "scamExposure": 0,
-    "mixerUsage": false,
-    "txCount": 152,
-    "nftWashTrading": false
-  }
-}
+Oder komplett neu:
+
+```bash
+rm -rf frontend/.next frontend/node_modules/.cache
+cd frontend && npm run dev
 ```
 
-## Supported Wallets
+## Ports
 
-- **Ethereum**: `0x` + 40 hex characters
-- **Bitcoin**: `1...`, `3...`, or `bc1...` addresses
-- **Solana**: Base58 addresses (32-44 chars)
+| Service  | URL |
+|----------|-----|
+| Frontend | http://localhost:3000 |
+| Backend  | http://localhost:3001 |
+| API Docs | http://localhost:3001/api/docs |
 
-## Risk Engine
+## Features
 
-Starting score: 100
-
-| Condition | Penalty |
-|-----------|---------|
-| scamExposure > 0 | -40 |
-| mixerUsage = true | -30 |
-| txCount < 5 | -10 |
-| nftWashTrading = true | -20 |
-| manySmallTransfers | -15 |
-
-Risk levels: Low (≥70), Medium (≥40), High (<40)
+- Wallet Scan (Adresse, ENS-Name, BTC, Solana)
+- Coin Scan (Symbol, Name, Contract)
+- Multi-Source Pipeline (CoinGecko, DexScreener, DefiLlama, …)
+- Score 0–100 mit Risiko-Level
