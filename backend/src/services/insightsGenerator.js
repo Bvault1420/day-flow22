@@ -68,6 +68,20 @@ function generateCoinInsights(analysis, subScores, score) {
     insights.push(`Kategorien: ${analysis.categories.slice(0, 4).join(", ")}.`);
   }
 
+  if (analysis.sourcesUsed?.length) {
+    insights.push(
+      `Daten aus ${analysis.sourcesUsed.length} Quellen: ${analysis.sourcesUsed.join(", ")} (Confidence: ${analysis.dataConfidence}%).`
+    );
+  }
+
+  if (analysis.dexLiquidityUsd) {
+    insights.push(`DEX-Liquidität: ${fmtUsd(analysis.dexLiquidityUsd)} über ${analysis.pairCount || 0} Pairs.`);
+  }
+
+  if (analysis.priceAgreement != null && analysis.priceAgreement < 80) {
+    insights.push(`⚠ Preis-Unterschiede zwischen Quellen (${analysis.priceAgreement}% Agreement).`);
+  }
+
   return insights;
 }
 

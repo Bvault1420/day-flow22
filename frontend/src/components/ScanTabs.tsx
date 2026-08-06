@@ -1,3 +1,5 @@
+"use client";
+
 export type ScanMode = "wallet" | "coin";
 
 interface ScanTabsProps {
@@ -16,6 +18,7 @@ export default function ScanTabs({ mode, onChange }: ScanTabsProps) {
       {tabs.map((tab) => (
         <button
           key={tab.id}
+          type="button"
           onClick={() => onChange(tab.id)}
           className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors ${
             mode === tab.id

@@ -1,3 +1,5 @@
+"use client";
+
 import { ScanMode } from "./ScanTabs";
 
 interface ScanInputProps {
@@ -17,8 +19,13 @@ export default function ScanInput({
 }: ScanInputProps) {
   const isWallet = mode === "wallet";
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loading && value.trim()) onScan();
+  };
+
   return (
-    <div className="w-full max-w-2xl">
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl">
       <label
         htmlFor="scan-input"
         className="block text-sm font-medium text-gray-700 mb-2"
@@ -40,10 +47,9 @@ export default function ScanInput({
           }
           className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm"
           disabled={loading}
-          onKeyDown={(e) => e.key === "Enter" && !loading && value.trim() && onScan()}
         />
         <button
-          onClick={onScan}
+          type="submit"
           disabled={loading || !value.trim()}
           className="px-6 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
         >
@@ -55,6 +61,6 @@ export default function ScanInput({
           Tipp: ENS-Namen wie <span className="font-mono">vitalik.eth</span> werden automatisch aufgelöst
         </p>
       )}
-    </div>
+    </form>
   );
 }

@@ -68,6 +68,18 @@ export interface ScanDetails {
   sentimentUp?: number;
   sentimentDown?: number;
   lastUpdated?: string;
+  sourcesUsed?: string[];
+  dataConfidence?: number;
+  priceAgreement?: number;
+  dexLiquidityUsd?: number;
+  tvlUsd?: number | null;
+  sourceSnapshots?: Array<{
+    source: string;
+    priceUsd?: number;
+    volume24h?: number;
+    marketCap?: number;
+  }>;
+  pairCount?: number;
   type?: "wallet" | "coin";
 }
 
@@ -118,3 +130,11 @@ export async function scanCoin(coin: string): Promise<ScanResult> {
 }
 
 export { getErrorMessage };
+
+export async function checkHealth(): Promise<{
+  frontend: string;
+  backend: { status?: string };
+}> {
+  const { data } = await api.get("/api/health");
+  return data;
+}

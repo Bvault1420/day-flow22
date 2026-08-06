@@ -7,11 +7,14 @@ import ScoreCard from "@/components/ScoreCard";
 import DetailsTable from "@/components/DetailsTable";
 import ScoreBreakdown from "@/components/ScoreBreakdown";
 import InsightsPanel from "@/components/InsightsPanel";
+import SourcesPanel from "@/components/SourcesPanel";
+import ApiDocsBanner from "@/components/ApiDocsBanner";
 import HistoryList from "@/components/HistoryList";
 import {
   scanWallet,
   scanCoin,
   getErrorMessage,
+  checkHealth,
   ScanResult,
   HistoryEntry,
 } from "@/lib/api";
@@ -24,9 +27,13 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [backendStatus, setBackendStatus] = useState("checking...");
 
   useEffect(() => {
     setHistory(getHistory());
+    checkHealth()
+      .then((h) => setBackendStatus(h.backend?.status === "ok" ? "online" : "offline"))
+      .catch(() => setBackendStatus("offline"));
   }, []);
 
   const handleModeChange = (newMode: ScanMode) => {
@@ -51,6 +58,7 @@ export default function HomePage() {
           : await scanCoin(trimmed);
 
       setResult(data);
+      setBackendStatus("online");
 
       const updated = addToHistory({
         query: trimmed,
@@ -76,40 +84,37 @@ export default function HomePage() {
     setHistory([]);
   };
 
+  const handleCheckHealth = async () => {
+    try {
+      const h = await checkHealth();
+      setBackendStatus(h.backend?.status === "ok" ? "online" : "offline");
+    } catch {
+      setBackendStatus("offline");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-white">
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center">
-              <svg
-                className="w-6 h-6 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                />
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                Wallet Reputation Score
-              </h1>
-              <p className="text-sm text-gray-500">
-                Wallet & Coin risk analysis — Schufa für Crypto
-              </p>
+              <h1 className="text-xl font-bold text-gray-900">Wallet Reputation Score</h1>
+              <p className="text-sm text-gray-500">Multi-Source Pipeline · Wallet & Coin Scanner</p>
             </div>
           </div>
         </div>
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-10">
-        <section className="flex flex-col items-center">
+        <section className="flex flex-col items-center space-y-4">
+          <ApiDocsBanner onCheckHealth={handleCheckHealth} backendStatus={backendStatus} />
           <ScanTabs mode={mode} onChange={handleModeChange} />
           <ScanInput
             mode={mode}
@@ -119,7 +124,7 @@ export default function HomePage() {
             loading={loading}
           />
           {error && (
-            <p className="mt-3 text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-200 w-full max-w-2xl">
+            <p className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg border border-red-200 w-full max-w-2xl">
               {error}
             </p>
           )}
@@ -131,6 +136,7 @@ export default function HomePage() {
             {result.subScores && (
               <ScoreBreakdown subScores={result.subScores} mode={mode} />
             )}
+            {mode === "coin" && <SourcesPanel details={result.details} />}
             {result.insights && <InsightsPanel insights={result.insights} />}
             <DetailsTable details={result.details} mode={mode} />
           </section>
@@ -143,7 +149,7 @@ export default function HomePage() {
 
       <footer className="border-t border-gray-200 mt-16">
         <div className="max-w-4xl mx-auto px-4 py-6 text-center text-xs text-gray-400">
-          Wallet Reputation Score v1.1 — Wallet & Coin Scanner
+          Wallet Reputation Score v1.2 — Multi-Source Pipeline (CoinGecko, DexScreener, CoinCap, DefiLlama, Mobula)
         </div>
       </footer>
     </main>

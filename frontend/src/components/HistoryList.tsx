@@ -1,3 +1,5 @@
+"use client";
+
 import { HistoryEntry } from "@/lib/api";
 
 interface HistoryListProps {
@@ -32,6 +34,7 @@ export default function HistoryList({ entries, onClear }: HistoryListProps) {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Scan History</h2>
         <button
+          type="button"
           onClick={onClear}
           className="text-sm text-gray-500 hover:text-red-600 transition-colors"
         >

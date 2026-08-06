@@ -161,7 +161,13 @@ function calculateCoinScore(analysis) {
     total += subScores[key] * weight;
   }
 
-  const score = Math.round(clamp(total));
+  let score = Math.round(clamp(total));
+
+  if (analysis.dataConfidence != null && analysis.dataConfidence < 50) score -= 12;
+  if (analysis.dataConfidence != null && analysis.dataConfidence < 30) score -= 18;
+  if (analysis.priceAgreement != null && analysis.priceAgreement < 70) score -= 8;
+
+  score = Math.round(clamp(score));
 
   return { score, subScores };
 }
