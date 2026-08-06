@@ -1,40 +1,45 @@
-const axios = require("axios");
+const { safeGet, safePost } = require("../../utils/httpClient");
 const { isScamAddress } = require("../../data/scamAddresses");
 const { isMixerAddress } = require("../../data/mixerAddresses");
 
-const ETH_RPC = "https://ethereum.publicnode.com";
+const ETH_RPCS = [
+  "https://ethereum.publicnode.com",
+  "https://rpc.ankr.com/eth",
+  "https://1rpc.io/eth",
+];
 const BLOCKSCOUT_API = "https://eth.blockscout.com/api/v2";
 
 async function rpcCall(method, params) {
-  const { data } = await axios.post(ETH_RPC, {
-    jsonrpc: "2.0",
-    method,
-    params,
-    id: 1,
-  });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  for (const rpc of ETH_RPCS) {
+    const data = await safePost(rpc, {
+      jsonrpc: "2.0",
+      method,
+      params,
+      id: 1,
+    });
+    if (data?.result) return data.result;
+    if (data?.error) console.warn(`RPC ${rpc}:`, data.error.message);
+  }
+  return null;
 }
 
 async function getTransactionCount(address) {
   const result = await rpcCall("eth_getTransactionCount", [address, "latest"]);
-  return parseInt(result, 16);
+  return result ? parseInt(result, 16) : 0;
 }
 
 async function fetchRecentTransactions(address) {
-  try {
-    const { data } = await axios.get(
-      `${BLOCKSCOUT_API}/addresses/${address}/transactions`,
-      { params: { filter: "to | from" }, timeout: 10000 }
-    );
-    return data.items || [];
-  } catch {
-    return [];
-  }
+  const data = await safeGet(
+    `${BLOCKSCOUT_API}/addresses/${address}/transactions`,
+    { params: { filter: "to | from" } }
+  );
+  return data?.items || [];
 }
 
 function detectRiskyPatterns(transactions) {
-  if (!transactions.length) return { manySmallTransfers: false, smallTransferCount: 0 };
+  if (!transactions.length) {
+    return { manySmallTransfers: false, smallTransferCount: 0 };
+  }
 
   const smallTransfers = transactions.filter((tx) => {
     const value = parseFloat(tx.value || "0");
@@ -48,7 +53,6 @@ function detectRiskyPatterns(transactions) {
 }
 
 function detectNftWashTrading(transactions) {
-  // Dummy rule: 3+ NFT-like transfers (method contains transfer) in short window
   const nftTransfers = transactions.filter(
     (tx) =>
       tx.method?.toLowerCase().includes("transfer") ||

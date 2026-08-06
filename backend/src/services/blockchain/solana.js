@@ -1,18 +1,24 @@
-const axios = require("axios");
+const { safePost } = require("../../utils/httpClient");
 const { isScamAddress } = require("../../data/scamAddresses");
 const { isMixerAddress } = require("../../data/mixerAddresses");
 
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+const SOLANA_RPCS = [
+  "https://api.mainnet-beta.solana.com",
+  "https://solana.publicnode.com",
+];
 
 async function rpcCall(method, params) {
-  const { data } = await axios.post(SOLANA_RPC, {
-    jsonrpc: "2.0",
-    method,
-    params,
-    id: 1,
-  });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  for (const rpc of SOLANA_RPCS) {
+    const data = await safePost(rpc, {
+      jsonrpc: "2.0",
+      method,
+      params,
+      id: 1,
+    });
+    if (data?.result) return data.result;
+    if (data?.error) console.warn(`Solana RPC ${rpc}:`, data.error.message);
+  }
+  return null;
 }
 
 async function getSignatures(address) {
@@ -24,7 +30,6 @@ async function getSignatures(address) {
 }
 
 function detectRiskyPatterns(signatures) {
-  // Dummy: many signatures in short time suggests bot activity
   return {
     manySmallTransfers: signatures.length >= 20,
     smallTransferCount: signatures.length,
@@ -32,7 +37,6 @@ function detectRiskyPatterns(signatures) {
 }
 
 function detectNftWashTrading(signatures) {
-  // Dummy rule: moderate activity window
   return signatures.length >= 5 && signatures.length <= 15;
 }
 

@@ -1,16 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
-import WalletInput from "@/components/WalletInput";
+import ScanTabs, { ScanMode } from "@/components/ScanTabs";
+import ScanInput from "@/components/ScanInput";
 import ScoreCard from "@/components/ScoreCard";
 import DetailsTable from "@/components/DetailsTable";
 import HistoryList from "@/components/HistoryList";
-import { scanWallet, ScanResult, HistoryEntry } from "@/lib/api";
+import {
+  scanWallet,
+  scanCoin,
+  getErrorMessage,
+  ScanResult,
+  HistoryEntry,
+} from "@/lib/api";
 import { getHistory, addToHistory, clearHistory } from "@/lib/history";
 
 export default function HomePage() {
-  const [wallet, setWallet] = useState("");
+  const [mode, setMode] = useState<ScanMode>("wallet");
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ScanResult | null>(null);
@@ -20,31 +27,43 @@ export default function HomePage() {
     setHistory(getHistory());
   }, []);
 
+  const handleModeChange = (newMode: ScanMode) => {
+    setMode(newMode);
+    setQuery("");
+    setResult(null);
+    setError(null);
+  };
+
   const handleScan = async () => {
-    if (!wallet.trim()) return;
+    if (!query.trim()) return;
 
     setLoading(true);
     setError(null);
     setResult(null);
 
     try {
-      const data = await scanWallet(wallet.trim());
+      const trimmed = query.trim();
+      const data =
+        mode === "wallet"
+          ? await scanWallet(trimmed)
+          : await scanCoin(trimmed);
+
       setResult(data);
 
       const updated = addToHistory({
-        wallet: wallet.trim(),
+        query: trimmed,
         score: data.score,
         riskLevel: data.riskLevel,
-        chain: data.details.chain || "unknown",
+        chain:
+          mode === "coin"
+            ? data.details.symbol || "coin"
+            : data.details.chain || "unknown",
+        type: mode,
         scannedAt: new Date().toISOString(),
       });
       setHistory(updated);
     } catch (err: unknown) {
-      const message =
-        axios.isAxiosError(err)
-          ? err.response?.data?.error || err.message
-          : "Scan failed. Please try again.";
-      setError(message);
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -57,7 +76,6 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Header */}
       <header className="border-b border-gray-200 bg-white">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3">
@@ -81,7 +99,7 @@ export default function HomePage() {
                 Wallet Reputation Score
               </h1>
               <p className="text-sm text-gray-500">
-                Crypto wallet risk analysis — like a Schufa for wallets
+                Wallet & Coin risk analysis — Schufa für Crypto
               </p>
             </div>
           </div>
@@ -89,11 +107,12 @@ export default function HomePage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-10">
-        {/* Input */}
         <section className="flex flex-col items-center">
-          <WalletInput
-            value={wallet}
-            onChange={setWallet}
+          <ScanTabs mode={mode} onChange={handleModeChange} />
+          <ScanInput
+            mode={mode}
+            value={query}
+            onChange={setQuery}
             onScan={handleScan}
             loading={loading}
           />
@@ -104,24 +123,21 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* Results */}
         {result && (
           <section className="flex flex-col items-center space-y-6">
-            <ScoreCard result={result} />
-            <DetailsTable details={result.details} />
+            <ScoreCard result={result} mode={mode} />
+            <DetailsTable details={result.details} mode={mode} />
           </section>
         )}
 
-        {/* History */}
         <section className="flex flex-col items-center">
           <HistoryList entries={history} onClear={handleClearHistory} />
         </section>
       </div>
 
-      {/* Footer */}
       <footer className="border-t border-gray-200 mt-16">
         <div className="max-w-4xl mx-auto px-4 py-6 text-center text-xs text-gray-400">
-          Wallet Reputation Score v1.0 — Runtime analysis, no database required
+          Wallet Reputation Score v1.1 — Wallet & Coin Scanner
         </div>
       </footer>
     </main>

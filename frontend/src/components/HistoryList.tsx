@@ -22,7 +22,7 @@ export default function HistoryList({ entries, onClear }: HistoryListProps) {
   if (entries.length === 0) {
     return (
       <div className="w-full max-w-2xl text-center py-8 text-gray-400">
-        No scans yet. Enter a wallet address to get started.
+        No scans yet. Enter a wallet or coin to get started.
       </div>
     );
   }
@@ -45,9 +45,20 @@ export default function HistoryList({ entries, onClear }: HistoryListProps) {
             className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-brand/30 transition-colors"
           >
             <div className="min-w-0 flex-1">
-              <p className="font-mono text-sm text-gray-800 truncate">
-                {entry.wallet}
-              </p>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${
+                    entry.type === "coin"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-blue-100 text-blue-700"
+                  }`}
+                >
+                  {entry.type}
+                </span>
+                <p className="font-mono text-sm text-gray-800 truncate">
+                  {entry.query}
+                </p>
+              </div>
               <p className="text-xs text-gray-400 mt-1">
                 {new Date(entry.scannedAt).toLocaleString("de-DE")} ·{" "}
                 <span className="capitalize">{entry.chain}</span>

@@ -1,19 +1,28 @@
-const axios = require("axios");
+const { safeGet } = require("../../utils/httpClient");
 const { isScamAddress } = require("../../data/scamAddresses");
 const { isMixerAddress } = require("../../data/mixerAddresses");
 
 async function fetchAddressData(address) {
-  const { data } = await axios.get(
-    `https://blockchain.info/rawaddr/${address}`,
-    { timeout: 10000 }
+  const data = await safeGet(`https://blockchain.info/rawaddr/${address}`);
+  if (data) return data;
+
+  const mempool = await safeGet(
+    `https://mempool.space/api/address/${address}`
   );
-  return data;
+  if (mempool) {
+    return {
+      n_tx: (mempool.chain_stats?.tx_count || 0) + (mempool.mempool_stats?.tx_count || 0),
+      txs: [],
+    };
+  }
+
+  return { n_tx: 0, txs: [] };
 }
 
 function detectRiskyPatterns(txs) {
   const smallTransfers = txs.filter((tx) => {
     const totalOut = tx.out?.reduce((sum, o) => sum + o.value, 0) || 0;
-    return totalOut > 0 && totalOut < 100000; // < 0.001 BTC in satoshis
+    return totalOut > 0 && totalOut < 100000;
   });
 
   return {
@@ -23,7 +32,6 @@ function detectRiskyPatterns(txs) {
 }
 
 function detectNftWashTrading() {
-  // BTC doesn't have NFT wash trading in our dummy model
   return false;
 }
 

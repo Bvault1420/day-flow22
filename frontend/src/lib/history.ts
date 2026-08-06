@@ -6,7 +6,13 @@ export function getHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    // Migrate old entries
+    return parsed.map((e: HistoryEntry & { wallet?: string }) => ({
+      ...e,
+      query: e.query || e.wallet || "",
+      type: e.type || "wallet",
+    }));
   } catch {
     return [];
   }

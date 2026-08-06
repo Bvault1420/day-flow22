@@ -1,11 +1,12 @@
 const { analyzeEthereumWallet } = require("./blockchain/ethereum");
 const { analyzeBitcoinWallet } = require("./blockchain/bitcoin");
 const { analyzeSolanaWallet } = require("./blockchain/solana");
+const { resolveWalletInput } = require("./nameResolver");
 
 function detectChain(wallet) {
   const trimmed = wallet.trim();
 
-  if (/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+  if (/^0x[a-fA-F0-9]{40}$/i.test(trimmed)) {
     return "ethereum";
   }
 
@@ -17,24 +18,38 @@ function detectChain(wallet) {
     return "solana";
   }
 
-  throw new Error(
-    "Unrecognized wallet format. Supported: Ethereum (0x...), Bitcoin (1/3/bc1...), Solana (base58)"
-  );
+  return null;
 }
 
-async function analyzeWallet(wallet) {
-  const chain = detectChain(wallet);
+async function analyzeWallet(walletInput) {
+  const { address, resolvedName } = await resolveWalletInput(walletInput);
+  const chain = detectChain(address);
+
+  if (!chain) {
+    throw new Error("Could not determine blockchain for resolved address");
+  }
+
+  let analysis;
 
   switch (chain) {
     case "ethereum":
-      return analyzeEthereumWallet(wallet.trim());
+      analysis = await analyzeEthereumWallet(address);
+      break;
     case "bitcoin":
-      return analyzeBitcoinWallet(wallet.trim());
+      analysis = await analyzeBitcoinWallet(address);
+      break;
     case "solana":
-      return analyzeSolanaWallet(wallet.trim());
+      analysis = await analyzeSolanaWallet(address);
+      break;
     default:
       throw new Error("Unsupported chain");
   }
+
+  if (resolvedName) {
+    analysis.resolvedName = resolvedName;
+  }
+
+  return analysis;
 }
 
 module.exports = { analyzeWallet, detectChain };

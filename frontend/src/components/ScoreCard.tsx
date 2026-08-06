@@ -2,6 +2,7 @@ import { ScanResult } from "@/lib/api";
 
 interface ScoreCardProps {
   result: ScanResult;
+  mode: "wallet" | "coin";
 }
 
 function getRiskStyles(level: string) {
@@ -41,15 +42,17 @@ function getRiskStyles(level: string) {
   }
 }
 
-export default function ScoreCard({ result }: ScoreCardProps) {
+export default function ScoreCard({ result, mode }: ScoreCardProps) {
   const styles = getRiskStyles(result.riskLevel);
+  const title =
+    mode === "coin" ? "Coin Safety Score" : "Wallet Reputation Score";
 
   return (
     <div
       className={`w-full max-w-2xl rounded-2xl border-2 ${styles.border} ${styles.bg} p-8 text-center`}
     >
       <p className="text-sm font-medium text-gray-600 uppercase tracking-wide mb-2">
-        Reputation Score
+        {title}
       </p>
       <div className={`text-7xl font-bold ${styles.text} mb-4`}>
         {result.score}
@@ -59,8 +62,22 @@ export default function ScoreCard({ result }: ScoreCardProps) {
       >
         {styles.label}
       </span>
-      {result.details.chain && (
+
+      {mode === "coin" && result.details.symbol && (
+        <p className="mt-4 text-lg font-semibold text-gray-800">
+          {result.details.name} ({result.details.symbol})
+        </p>
+      )}
+
+      {mode === "wallet" && result.details.resolvedName && (
         <p className="mt-4 text-sm text-gray-500">
+          Resolved:{" "}
+          <span className="font-mono font-medium">{result.details.resolvedName}</span>
+        </p>
+      )}
+
+      {result.details.chain && mode === "wallet" && (
+        <p className="mt-2 text-sm text-gray-500">
           Chain: <span className="font-medium capitalize">{result.details.chain}</span>
         </p>
       )}
