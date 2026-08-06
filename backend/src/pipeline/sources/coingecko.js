@@ -3,10 +3,11 @@ const { safeGet } = require("../../utils/httpClient");
 const API = "https://api.coingecko.com/api/v3";
 
 const SYMBOL_MAP = {
-  btc: "bitcoin", eth: "ethereum", sol: "solana", usdt: "tether",
-  usdc: "usd-coin", bnb: "binancecoin", xrp: "ripple", ada: "cardano",
-  doge: "dogecoin", dot: "polkadot", avax: "avalanche-2", matic: "matic-network",
-  link: "chainlink", shib: "shiba-inu", pepe: "pepe", arb: "arbitrum", op: "optimism",
+  btc: "bitcoin", eth: "ethereum", sol: "solana", solana: "solana",
+  usdt: "tether", usdc: "usd-coin", bnb: "binancecoin", xrp: "ripple",
+  ada: "cardano", doge: "dogecoin", dot: "polkadot", avax: "avalanche-2",
+  matic: "matic-network", link: "chainlink", shib: "shiba-inu", pepe: "pepe",
+  arb: "arbitrum", op: "optimism", bitcoin: "bitcoin", ethereum: "ethereum",
 };
 
 async function fetchCoinGecko(input, contractAddress) {

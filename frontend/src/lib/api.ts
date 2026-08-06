@@ -109,14 +109,19 @@ const api = axios.create({
 function getErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     if (err.code === "ECONNABORTED") {
-      return "Request timed out. Make sure the backend is running on port 3001.";
+      return "Zeitüberschreitung — Backend läuft? cd backend && npm run dev";
     }
+    const serverError = err.response?.data?.error;
+    if (serverError) return serverError;
     if (err.message === "Network Error" || !err.response) {
-      return "Network error — start backend: cd backend && npm run dev";
+      return "Backend nicht erreichbar. Starte: cd backend && npm run dev";
     }
-    return err.response?.data?.error || err.message;
+    if (err.response?.status === 503) {
+      return "Backend offline — starte cd backend && npm run dev";
+    }
+    return err.message;
   }
-  return "Scan failed. Please try again.";
+  return "Scan fehlgeschlagen. Bitte erneut versuchen.";
 }
 
 export async function scanWallet(wallet: string): Promise<ScanResult> {
@@ -130,11 +135,3 @@ export async function scanCoin(coin: string): Promise<ScanResult> {
 }
 
 export { getErrorMessage };
-
-export async function checkHealth(): Promise<{
-  frontend: string;
-  backend: { status?: string };
-}> {
-  const { data } = await api.get("/api/health");
-  return data;
-}

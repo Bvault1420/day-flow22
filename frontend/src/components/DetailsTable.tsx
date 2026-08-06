@@ -1,3 +1,5 @@
+"use client";
+
 import { ScanDetails } from "@/lib/api";
 
 interface DetailsTableProps {
@@ -96,9 +98,9 @@ export default function DetailsTable({ details, mode }: DetailsTableProps) {
   const rows = mode === "coin" ? coinRows : walletRows;
 
   return (
-    <div className="w-full max-w-2xl overflow-hidden rounded-xl border border-gray-200">
-      <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-700">Detaildaten (Live via CoinGecko / Blockchain)</h3>
+    <div className="w-full max-w-2xl mx-auto card overflow-hidden">
+      <div className="px-6 py-4 border-b border-slate-100">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400">Details</h3>
       </div>
       <table className="w-full text-sm">
         <thead>

@@ -25,14 +25,9 @@ export default function ScanInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl">
-      <label
-        htmlFor="scan-input"
-        className="block text-sm font-medium text-gray-700 mb-2"
-      >
-        {isWallet
-          ? "Wallet-Adresse oder ENS-Name (ETH, BTC, Solana)"
-          : "Coin Symbol, Name oder Contract-Adresse"}
+    <form onSubmit={handleSubmit} className="w-full max-w-2xl card p-5">
+      <label htmlFor="scan-input" className="block text-sm font-semibold text-slate-700 mb-3">
+        {isWallet ? "Wallet scannen" : "Coin scannen"}
       </label>
       <div className="flex flex-col sm:flex-row gap-3">
         <input
@@ -42,25 +37,30 @@ export default function ScanInput({
           onChange={(e) => onChange(e.target.value)}
           placeholder={
             isWallet
-              ? "0x... / vitalik.eth / bc1... / Solana-Adresse"
-              : "BTC / Ethereum / 0x contract..."
+              ? "0x... · vitalik.eth · bc1..."
+              : "BTC · Solana · PEPE · 0x..."
           }
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent font-mono text-sm"
+          className="flex-1 px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand font-mono text-sm"
           disabled={loading}
         />
         <button
           type="submit"
           disabled={loading || !value.trim()}
-          className="px-6 py-3 bg-brand text-white font-semibold rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+          className="px-8 py-3.5 bg-brand text-white font-semibold rounded-xl hover:bg-blue-600 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg shadow-blue-500/20"
         >
-          {loading ? "Scanning..." : isWallet ? "Scan Wallet" : "Scan Coin"}
+          {loading ? (
+            <span className="flex items-center gap-2 justify-center">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Analysiere...
+            </span>
+          ) : (
+            "Scannen"
+          )}
         </button>
       </div>
-      {isWallet && (
-        <p className="mt-2 text-xs text-gray-400">
-          Tipp: ENS-Namen wie <span className="font-mono">vitalik.eth</span> werden automatisch aufgelöst
-        </p>
-      )}
     </form>
   );
 }

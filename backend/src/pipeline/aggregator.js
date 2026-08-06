@@ -118,14 +118,14 @@ async function aggregateCoinData(input) {
   const priceSources = results.filter((r) => r.priceUsd > 0).length;
   const dataConfidence = Math.min(100, Math.round((priceSources / 6) * 100));
 
-  // Price agreement: low spread between sources = high confidence
+  // Price agreement between sources
   const prices = results.map((r) => r.priceUsd).filter((p) => p > 0);
   let priceAgreement = 100;
   if (prices.length >= 2) {
     const minP = Math.min(...prices);
     const maxP = Math.max(...prices);
-    const spread = ((maxP - minP) / minP) * 100;
-    priceAgreement = Math.max(0, 100 - spread * 10);
+    const spreadPct = ((maxP - minP) / minP) * 100;
+    priceAgreement = Math.max(0, Math.min(100, 100 - spreadPct * 2));
   }
 
   return {
@@ -171,7 +171,10 @@ async function aggregateCoinData(input) {
     developerScore: primary.developerScore || 0,
     sentimentUp: primary.sentimentUp,
     sentimentDown: primary.sentimentDown,
-    tvlUsd: results.find((r) => r.tvlUsd)?.tvlUsd || null,
+    tvlUsd: (() => {
+      const raw = results.find((r) => r.tvlUsd != null)?.tvlUsd;
+      return typeof raw === "number" && !Number.isNaN(raw) ? raw : null;
+    })(),
     lastUpdated: primary.lastUpdated || new Date().toISOString(),
     sourcesUsed,
     dataConfidence,

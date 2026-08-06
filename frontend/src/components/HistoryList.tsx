@@ -9,73 +9,53 @@ interface HistoryListProps {
 
 function getRiskColor(level: string) {
   switch (level) {
-    case "low":
-      return "text-green-600";
-    case "medium":
-      return "text-yellow-600";
-    case "high":
-      return "text-red-600";
-    default:
-      return "text-gray-600";
+    case "low": return "text-emerald-600 bg-emerald-50";
+    case "medium": return "text-amber-600 bg-amber-50";
+    case "high": return "text-red-600 bg-red-50";
+    default: return "text-slate-500 bg-slate-50";
   }
 }
 
 export default function HistoryList({ entries, onClear }: HistoryListProps) {
-  if (entries.length === 0) {
+  if (!entries.length) {
     return (
-      <div className="w-full max-w-2xl text-center py-8 text-gray-400">
-        No scans yet. Enter a wallet or coin to get started.
+      <div className="max-w-2xl mx-auto text-center py-10 text-slate-400 text-sm">
+        Noch keine Scans — gib eine Wallet oder Coin ein.
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-2xl">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Scan History</h2>
+    <div className="max-w-2xl mx-auto">
+      <div className="flex items-center justify-between mb-4 px-1">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Historie</h2>
         <button
           type="button"
           onClick={onClear}
-          className="text-sm text-gray-500 hover:text-red-600 transition-colors"
+          className="text-xs text-slate-400 hover:text-red-500 transition-colors"
         >
-          Clear history
+          Löschen
         </button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {entries.map((entry) => (
-          <div
-            key={entry.id}
-            className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-lg hover:border-brand/30 transition-colors"
-          >
+          <div key={entry.id} className="card flex items-center justify-between p-4">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <span
-                  className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${
-                    entry.type === "coin"
-                      ? "bg-purple-100 text-purple-700"
-                      : "bg-blue-100 text-blue-700"
-                  }`}
-                >
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">
                   {entry.type}
                 </span>
-                <p className="font-mono text-sm text-gray-800 truncate">
-                  {entry.query}
-                </p>
+                <p className="font-mono text-sm text-slate-700 truncate">{entry.query}</p>
               </div>
-              <p className="text-xs text-gray-400 mt-1">
-                {new Date(entry.scannedAt).toLocaleString("de-DE")} ·{" "}
-                <span className="capitalize">{entry.chain}</span>
+              <p className="text-xs text-slate-400 mt-1">
+                {new Date(entry.scannedAt).toLocaleString("de-DE")}
               </p>
             </div>
-            <div className="ml-4 text-right">
-              <p className="text-2xl font-bold text-gray-900">{entry.score}</p>
-              <p
-                className={`text-xs font-semibold uppercase ${getRiskColor(
-                  entry.riskLevel
-                )}`}
-              >
+            <div className="ml-4 flex items-center gap-3">
+              <span className="text-2xl font-black text-slate-800">{entry.score}</span>
+              <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-lg ${getRiskColor(entry.riskLevel)}`}>
                 {entry.riskLevel}
-              </p>
+              </span>
             </div>
           </div>
         ))}

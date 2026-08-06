@@ -8,25 +8,32 @@ interface ScanTabsProps {
 }
 
 export default function ScanTabs({ mode, onChange }: ScanTabsProps) {
-  const tabs: { id: ScanMode; label: string }[] = [
-    { id: "wallet", label: "Wallet Scan" },
-    { id: "coin", label: "Coin Scan" },
+  const tabs: { id: ScanMode; label: string; desc: string }[] = [
+    { id: "wallet", label: "Wallet", desc: "Adresse oder ENS" },
+    { id: "coin", label: "Coin", desc: "Symbol oder Token" },
   ];
 
   return (
-    <div className="flex gap-2 w-full max-w-2xl mb-4">
+    <div className="flex gap-3 w-full max-w-2xl">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           type="button"
           onClick={() => onChange(tab.id)}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors ${
+          className={`flex-1 p-4 rounded-xl border-2 transition-all text-left ${
             mode === tab.id
-              ? "bg-brand text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ? "border-brand bg-blue-50 shadow-sm"
+              : "border-slate-200 bg-white hover:border-slate-300"
           }`}
         >
-          {tab.label}
+          <span
+            className={`block text-sm font-bold ${
+              mode === tab.id ? "text-brand" : "text-slate-800"
+            }`}
+          >
+            {tab.label}
+          </span>
+          <span className="block text-xs text-slate-500 mt-0.5">{tab.desc}</span>
         </button>
       ))}
     </div>
