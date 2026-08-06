@@ -4,8 +4,9 @@ const nextConfig = {
   allowedDevOrigins: [
     "localhost",
     "127.0.0.1",
+    "*.cvm.dev",
     "*.agent.cvm.dev",
-    "*.cursor.com",
+    "gent.cvm.dev",
   ],
   images: {
     remotePatterns: [

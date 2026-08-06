@@ -1,5 +1,3 @@
-"use client";
-
 import { ScanDetails } from "@/lib/api";
 
 interface DetailsTableProps {

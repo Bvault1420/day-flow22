@@ -1,5 +1,3 @@
-"use client";
-
 import { SubScores } from "@/lib/api";
 
 interface ScoreBreakdownProps {
